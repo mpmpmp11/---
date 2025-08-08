@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Catch the Ball (Mobile Friendly)</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #222;
+      color: #fff;
+    }
+
+    h1 {
+      margin: 20px 0 10px;
+    }
+
+    #gameArea {
+      position: relative;
+      width: 95vw;
+      max-width: 600px;
+      height: 80vh;
+      margin: 0 auto;
+      background-color: #333;
+      border: 2px solid #fff;
+      overflow: hidden;
+    }
+
+    #paddle {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 20px;
+      background-color: #0f0;
+      border-radius: 10px;
+    }
+
+    #ball {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 30px;
+      height: 30px;
+      background-color: red;
+      border-radius: 50%;
+      transform: translateX(-50%);
+    }
+
+    .powerup {
+      position: absolute;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      top: 0;
+    }
+
+    .faster {
+      background-color: lime;
+    }
+
+    .slower {
+      background-color: yellow;
+    }
+
+    .shield {
+      background-color: cyan;
+    }
+
+    #score {
+      margin: 10px;
+      font-size: 20px;
+    }
+
+    #gameOver {
+      display: none;
+      font-size: 28px;
+      margin-top: 20px;
+    }
+
+    #retryBtn {
+      display: none;
+      padding: 10px 20px;
+      font-size: 18px;
+      margin-top: 10px;
+      cursor: pointer;
+      background-color: #fff;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+    }
+
+    .shield-active {
+      box-shadow: 0 0 15px cyan;
+    }
+  </style>
+</head>
+<body>
+  <h1>Catch the Ball!</h1>
+  <div id="score">Score: 0</div>
+  <div id="gameArea">
+    <div id="paddle"></div>
+    <div id="ball"></div>
+  </div>
+  <div id="gameOver">Game Over!</div>
+  <button id="retryBtn">Retry</button>
+
+  <script>
+    const paddle = document.getElementById('paddle');
+    const ball = document.getElementById('ball');
+    const gameArea = document.getElementById('gameArea');
+    const scoreDisplay = document.getElementById('score');
+    const gameOverText = document.getElementById('gameOver');
+    const retryBtn = document.getElementById('retryBtn');
+
+    let score = 0;
+    let ballSpeed = 2;
+    let paddleSpeed = 10;
+    let isShielded = false;
+    let gameRunning = true;
+    let powerUpInterval;
+
+    function resetGame() {
+      score = 0;
+      ballSpeed = 2;
+      paddleSpeed = 10;
+      isShielded = false;
+      gameRunning = true;
+      scoreDisplay.textContent = 'Score: 0';
+      ball.style.top = '0px';
+      ball.style.left = '50%';
+      gameOverText.style.display = 'none';
+      retryBtn.style.display = 'none';
+      paddle.classList.remove('shield-active');
+      spawnPowerUps();
+      gameLoop();
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+      const ballRect = ball.getBoundingClientRect();
+      const gameRect = gameArea.getBoundingClientRect();
+      const paddleRect = paddle.getBoundingClientRect();
+
+      let top = parseInt(ball.style.top);
+      top += ballSpeed;
+      ball.style.top = top + 'px';
+
+      // Collision with paddle
+      if (
+        ballRect.bottom >= paddleRect.top &&
+        ballRect.left < paddleRect.right &&
+        ballRect.right > paddleRect.left &&
+        ballRect.top < paddleRect.bottom
+      ) {
+        score++;
+        scoreDisplay.textContent = 'Score: ' + score;
+        resetBall();
+      }
+
+      // Missed the ball
+      if (top > gameArea.clientHeight) {
+        if (isShielded) {
+          isShielded = false;
+          paddle.classList.remove('shield-active');
+          resetBall();
+        } else {
+          endGame();
+          return;
+        }
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function resetBall() {
+      ball.style.top = '0px';
+      ball.style.left = Math.random() * (gameArea.clientWidth - 30) + 'px';
+    }
+
+    function endGame() {
+      gameRunning = false;
+      gameOverText.style.display = 'block';
+      retryBtn.style.display = 'inline-block';
+      clearInterval(powerUpInterval);
+      document.querySelectorAll('.powerup').forEach(p => p.remove());
+    }
+
+    // Move paddle with arrow keys
+    document.addEventListener('keydown', e => {
+      let left = parseInt(window.getComputedStyle(paddle).left);
+      if (e.key === 'ArrowLeft' && left > 0) {
+        paddle.style.left = Math.max(0, left - paddleSpeed) + 'px';
+      }
+      if (e.key === 'ArrowRight' && left < gameArea.clientWidth - paddle.clientWidth) {
+        paddle.style.left = Math.min(gameArea.clientWidth - paddle.clientWidth, left + paddleSpeed) + 'px';
+      }
+    });
+
+    // Touch dragging for paddle on mobile
+    let isDragging = false;
+
+    paddle.addEventListener('touchstart', e => {
+      isDragging = true;
+    });
+
+    paddle.addEventListener('touchend', e => {
+      isDragging = false;
+    });
+
+    paddle.addEventListener('touchmove', e => {
+      if (!isDragging) return;
+      const touch = e.touches[0];
+      const rect = gameArea.getBoundingClientRect();
+      let newX = touch.clientX - rect.left - paddle.clientWidth / 2;
+
+      // Clamp inside game area
+      newX = Math.max(0, Math.min(newX, gameArea.clientWidth - paddle.clientWidth));
+      paddle.style.left = newX + 'px';
+
+      e.preventDefault();
+    });
+
+    // Retry button
+    retryBtn.addEventListener('click', resetGame);
+
+    // Power-ups
+    function spawnPowerUps() {
+      powerUpInterval = setInterval(() => {
+        if (!gameRunning) return;
+
+        const types = ['faster', 'slower', 'shield'];
+        const type = types[Math.floor(Math.random() * types.length)];
+        const power = document.createElement('div');
+        power.classList.add('powerup', type);
+        power.style.left = Math.random() * (gameArea.clientWidth - 25) + 'px';
+        gameArea.appendChild(power);
+
+        let top = 0;
+        const fall = setInterval(() => {
+          if (!gameRunning) {
+            power.remove();
+            clearInterval(fall);
+            return;
+          }
+
+          top += 2;
+          power.style.top = top + 'px';
+
+          const powerRect = power.getBoundingClientRect();
+          const paddleRect = paddle.getBoundingClientRect();
+
+          if (
+            powerRect.bottom >= paddleRect.top &&
+            powerRect.left < paddleRect.right &&
+            powerRect.right > paddleRect.left &&
+            powerRect.top < paddleRect.bottom
+          ) {
+            applyPowerUp(type);
+            power.remove();
+            clearInterval(fall);
+          }
+
+          if (top > gameArea.clientHeight) {
+            power.remove();
+            clearInterval(fall);
+          }
+        }, 16);
+      }, 5000); // Every 5 seconds
+    }
+
+    function applyPowerUp(type) {
+      if (type === 'faster') {
+        paddleSpeed += 5;
+        setTimeout(() => {
+          paddleSpeed -= 5;
+        }, 5000);
+      } else if (type === 'slower') {
+        ballSpeed = Math.max(1, ballSpeed - 1);
+        setTimeout(() => {
+          ballSpeed += 1;
+        }, 5000);
+      } else if (type === 'shield') {
+        isShielded = true;
+        paddle.classList.add('shield-active');
+        setTimeout(() => {
+          isShielded = false;
+          paddle.classList.remove('shield-active');
+        }, 7000);
+      }
+    }
+
+    // Start game on page load
+    resetGame();
+  </script>
+</body>
+</html>
