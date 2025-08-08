@@ -1,189 +1,176 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Catch the Ball Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catch the Ball</title>
   <style>
     body {
       margin: 0;
-      background: #111;
-      color: white;
-      font-family: sans-serif;
-      text-align: center;
+      background: #000;
       overflow: hidden;
     }
-
     canvas {
-      background: #222;
       display: block;
+      background: #111;
       margin: 0 auto;
     }
-
-    #scoreboard {
-      margin-top: 10px;
-      font-size: 18px;
-    }
-
-    .mobile-controls {
-      margin-top: 20px;
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
-      justify-content: center;
-      gap: 30px;
+      gap: 20px;
     }
-
-    .control-btn {
-      padding: 20px;
-      font-size: 24px;
-      background: #333;
-      color: white;
+    .arrow {
+      width: 60px;
+      height: 60px;
+      font-size: 30px;
+      background: #fff;
+      border-radius: 50%;
       border: none;
-      border-radius: 10px;
-      width: 80px;
-      transition: 0.2s;
-    }
-
-    .control-btn:active {
-      background: #555;
+      opacity: 0.7;
     }
   </style>
 </head>
 <body>
-  <h1>Catch the Ball</h1>
-  <canvas id="gameCanvas" width="360" height="480"></canvas>
-  <div id="scoreboard">
-    Score: <span id="score">0</span> | High Score: <span id="highScore">0</span>
-  </div>
-  <div class="mobile-controls">
-    <button class="control-btn" id="leftBtn">⬅️</button>
-    <button class="control-btn" id="rightBtn">➡️</button>
-  </div>
+<canvas id="gameCanvas" width="400" height="600"></canvas>
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+<div class="controls">
+  <button class="arrow" id="leftBtn">⬅</button>
+  <button class="arrow" id="rightBtn">➡</button>
+</div>
 
-    let paddle = {
-      x: canvas.width / 2 - 40,
-      y: canvas.height - 30,
-      width: 80,
-      height: 10,
-      dx: 5
-    };
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
 
-    let ball = {
-      x: Math.random() * (canvas.width - 20),
-      y: 0,
-      radius: 10,
-      dy: 3
-    };
+  let paddleWidth = 80;
+  let paddleHeight = 15;
+  let paddleX = (canvas.width - paddleWidth) / 2;
+  let paddleY = canvas.height - 30;
+  let paddleSpeed = 5;
 
-    let score = 0;
-    let highScore = localStorage.getItem("highScore") || 0;
-    document.getElementById("highScore").textContent = highScore;
+  let ballX = Math.random() * (canvas.width - 20);
+  let ballY = 0;
+  let ballSize = 20;
+  let ballSpeed = 4;
 
-    let isGameOver = false;
+  let score = 0;
+  let gameOver = false;
 
-    function drawPaddle() {
-      ctx.fillStyle = "white";
-      ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+  let moveLeft = false;
+  let moveRight = false;
+
+  function drawPaddle() {
+    ctx.fillStyle = "#0f0";
+    ctx.fillRect(paddleX, paddleY, paddleWidth, paddleHeight);
+  }
+
+  function drawBall() {
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, ballSize / 2, 0, Math.PI * 2);
+    ctx.fillStyle = "#f00";
+    ctx.fill();
+    ctx.closePath();
+  }
+
+  function drawScore() {
+    ctx.font = "20px Arial";
+    ctx.fillStyle = "#fff";
+    ctx.fillText("Score: " + score, 10, 30);
+  }
+
+  function drawGameOver() {
+    ctx.font = "40px Arial";
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2);
+    ctx.font = "20px Arial";
+    ctx.fillText("Tap to Retry", canvas.width / 2, canvas.height / 2 + 40);
+  }
+
+  function resetGame() {
+    ballX = Math.random() * (canvas.width - 20);
+    ballY = 0;
+    score = 0;
+    gameOver = false;
+  }
+
+  function updateGame() {
+    if (gameOver) return;
+
+    // Ball movement
+    ballY += ballSpeed;
+
+    // Paddle movement
+    if (moveLeft) {
+      paddleX -= paddleSpeed;
+      if (paddleX < 0) paddleX = 0;
+    }
+    if (moveRight) {
+      paddleX += paddleSpeed;
+      if (paddleX + paddleWidth > canvas.width) paddleX = canvas.width - paddleWidth;
     }
 
-    function drawBall() {
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-      ctx.fillStyle = "red";
-      ctx.fill();
-      ctx.closePath();
+    // Catching the ball
+    if (
+      ballY + ballSize >= paddleY &&
+      ballX + ballSize > paddleX &&
+      ballX < paddleX + paddleWidth
+    ) {
+      score++;
+      ballY = 0;
+      ballX = Math.random() * (canvas.width - 20);
     }
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      drawPaddle();
-      drawBall();
-
-      if (isGameOver) {
-        ctx.fillStyle = "white";
-        ctx.font = "24px sans-serif";
-        ctx.fillText("Game Over", canvas.width / 2 - 60, canvas.height / 2);
-        ctx.fillText("Tap to Retry", canvas.width / 2 - 70, canvas.height / 2 + 30);
-        return;
-      }
-
-      ball.y += ball.dy;
-
-      // Check collision
-      if (
-        ball.y + ball.radius >= paddle.y &&
-        ball.x >= paddle.x &&
-        ball.x <= paddle.x + paddle.width
-      ) {
-        score++;
-        document.getElementById("score").textContent = score;
-        if (score > highScore) {
-          highScore = score;
-          localStorage.setItem("highScore", highScore);
-          document.getElementById("highScore").textContent = highScore;
-        }
-        ball.y = 0;
-        ball.x = Math.random() * (canvas.width - 20);
-        ball.dy += 0.3; // increase speed slightly
-      }
-
-      // Game over
-      if (ball.y > canvas.height) {
-        isGameOver = true;
-      }
-
-      requestAnimationFrame(draw);
+    // Missed the ball
+    if (ballY > canvas.height) {
+      gameOver = true;
     }
+  }
 
-    function movePaddle(dir) {
-      if (dir === "left" && paddle.x > 0) {
-        paddle.x -= paddle.dx;
-      } else if (dir === "right" && paddle.x + paddle.width < canvas.width) {
-        paddle.x += paddle.dx;
-      }
-    }
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawPaddle();
+    drawBall();
+    drawScore();
+    if (gameOver) drawGameOver();
+  }
 
-    // Mouse drag
-    canvas.addEventListener("mousemove", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      paddle.x = x - paddle.width / 2;
-    });
-
-    // Touch drag
-    canvas.addEventListener("touchmove", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.touches[0].clientX - rect.left;
-      paddle.x = x - paddle.width / 2;
-    });
-
-    // Mobile buttons
-    document.getElementById("leftBtn").addEventListener("touchstart", () => {
-      movePaddle("left");
-    });
-
-    document.getElementById("rightBtn").addEventListener("touchstart", () => {
-      movePaddle("right");
-    });
-
-    // Restart game
-    canvas.addEventListener("click", () => {
-      if (isGameOver) {
-        isGameOver = false;
-        score = 0;
-        ball.y = 0;
-        ball.x = Math.random() * (canvas.width - 20);
-        ball.dy = 3;
-        document.getElementById("score").textContent = score;
-        draw();
-      }
-    });
-
+  function gameLoop() {
+    updateGame();
     draw();
-  </script>
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Keyboard controls
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft") moveLeft = true;
+    if (e.key === "ArrowRight") moveRight = true;
+    if (gameOver) resetGame();
+  });
+
+  document.addEventListener("keyup", function (e) {
+    if (e.key === "ArrowLeft") moveLeft = false;
+    if (e.key === "ArrowRight") moveRight = false;
+  });
+
+  // Mobile buttons
+  const leftBtn = document.getElementById("leftBtn");
+  const rightBtn = document.getElementById("rightBtn");
+
+  leftBtn.addEventListener("touchstart", () => (moveLeft = true));
+  leftBtn.addEventListener("touchend", () => (moveLeft = false));
+
+  rightBtn.addEventListener("touchstart", () => (moveRight = true));
+  rightBtn.addEventListener("touchend", () => (moveRight = false));
+
+  canvas.addEventListener("touchstart", () => {
+    if (gameOver) resetGame();
+  });
+
+  gameLoop();
+</script>
 </body>
 </html>
