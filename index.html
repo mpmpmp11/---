@@ -6,7 +6,6 @@
 <title>Catch the Ball!</title>
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
 <style>
-  /* Basic reset & styling */
   * {
     margin: 0; padding: 0; box-sizing: border-box;
   }
@@ -103,12 +102,9 @@
     background: #e94560;
     box-shadow: 0 0 12px #e94560;
   }
-  ul {
-    list-style: none;
-    text-align: center;
-  }
-  ul li {
-    margin: 6px 0;
+  #scoreDisplay, #highScoreDisplay {
+    font-size: 1.5rem;
+    margin: 10px;
   }
 </style>
 </head>
@@ -118,9 +114,6 @@
   <!-- Home Screen -->
   <div id="homeScreen" class="screen active">
     <button id="playBtn">Play</button>
-    <button id="leaderboardBtn">Leaderboard</button>
-    <h3>Top Scores</h3>
-    <ul id="miniLeaderboard"></ul>
   </div>
 
   <!-- Difficulty Selection Screen -->
@@ -147,20 +140,20 @@
         <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
       </div>
     </div>
-    <h3>Score: <span id="scoreDisplay">0</span></h3>
-    <h4>Difficulty: <span id="diffLabel">MEDIUM</span></h4>
+    <div id="scoreDisplay">Score: 0</div>
+    <div id="highScoreDisplay">Best: 0</div>
+    <div>Difficulty: <span id="diffLabel">MEDIUM</span></div>
     <button id="retryBtn">Retry</button>
     <button id="goHomeBtn">Home</button>
   </div>
 
-  <!-- Game Over / Leaderboard Screen -->
+  <!-- Game Over Screen -->
   <div id="overScreen" class="screen">
     <h2>Game Over</h2>
     <p>Your Score: <span id="finalScore">0</span></p>
+    <p>Best Score: <span id="finalHighScore">0</span></p>
     <button id="retryBtn2">Play Again</button>
     <button id="backHomeBtn2">Home</button>
-    <h3>Leaderboard</h3>
-    <ul id="leaderboardList"></ul>
   </div>
 
 <script>
@@ -183,7 +176,6 @@
   const overScreen = document.getElementById('overScreen');
 
   const playBtn = document.getElementById('playBtn');
-  const leaderboardBtn = document.getElementById('leaderboardBtn');
   const backHomeBtn = document.getElementById('backHomeBtn');
   const startGameBtn = document.getElementById('startGameBtn');
   const retryBtn = document.getElementById('retryBtn');
@@ -191,11 +183,11 @@
   const goHomeBtn = document.getElementById('goHomeBtn');
   const backHomeBtn2 = document.getElementById('backHomeBtn2');
 
-  const miniLeaderboard = document.getElementById('miniLeaderboard');
-  const leaderboardList = document.getElementById('leaderboardList');
-  const finalScore = document.getElementById('finalScore');
   const scoreDisplay = document.getElementById('scoreDisplay');
+  const highScoreDisplay = document.getElementById('highScoreDisplay');
   const diffLabel = document.getElementById('diffLabel');
+  const finalScore = document.getElementById('finalScore');
+  const finalHighScore = document.getElementById('finalHighScore');
 
   const leftBtn = document.getElementById('leftBtn');
   const rightBtn = document.getElementById('rightBtn');
@@ -212,7 +204,8 @@
   let ball;
   let ballDirX, ballDirY;
   let paddle;
-  let paddleSpeed = 6;
+  const basePaddleSpeed = 6;
+  let paddleSpeed = basePaddleSpeed;
   let pressedLeft = false;
   let pressedRight = false;
   let score = 0;
@@ -222,6 +215,15 @@
   let powerupTimers = {};
   let powerupSpawnTimer = 0;
   let shieldActive = false;
+
+  // Load high score from localStorage or 0
+  function loadHighScore() {
+    return Number(localStorage.getItem('catchBallHighScore')) || 0;
+  }
+  // Save high score to localStorage
+  function saveHighScore(value) {
+    localStorage.setItem('catchBallHighScore', value);
+  }
 
   // Helper functions
   function clamp(x, min, max) {
@@ -259,7 +261,8 @@
     powerupSpawnTimer = 0;
     shieldActive = false;
 
-    scoreDisplay.textContent = score;
+    scoreDisplay.textContent = `Score: ${score}`;
+    highScoreDisplay.textContent = `Best: ${loadHighScore()}`;
     diffLabel.textContent = difficulty.toUpperCase();
 
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -309,14 +312,12 @@
     });
   }
 
-  // Normalize ball direction vector (so speed is consistent)
   function normalizeBallDir() {
     const length = Math.sqrt(ballDirX * ballDirX + ballDirY * ballDirY);
     ballDirX /= length;
     ballDirY /= length;
   }
 
-  // Update powerups with fixed redeclaration issue
   function updatePowerups() {
     const now = performance.now();
 
@@ -349,13 +350,12 @@
     }
   }
 
-  // Powerup handlers
   function activatePowerup(type) {
     powerupTimers[type] = performance.now();
     activePowerups[type] = true;
     switch (type) {
       case 'faster':
-        paddle.speed = paddleSpeed * 2.5;
+        paddle.speed = basePaddleSpeed * 2.5;
         break;
       case 'slow':
         ball.speed /= 2;
@@ -370,13 +370,12 @@
     activePowerups[type] = false;
     switch (type) {
       case 'faster':
-        paddle.speed = paddleSpeed;
+        paddle.speed = basePaddleSpeed;
         break;
       case 'slow':
-        ball.speed = Math.min(
-          ball.speed * 2,
-          DIFFICULTY_SETTINGS[difficulty].startSpeed + score * DIFFICULTY_SETTINGS[difficulty].acceleration * 1000
-        );
+        // Restore ball speed but don't let it go below starting speed
+        const startSpeed = DIFFICULTY_SETTINGS[difficulty].startSpeed;
+        ball.speed = Math.max(ball.speed * 2, startSpeed);
         break;
       case 'shield':
         shieldActive = false;
@@ -384,7 +383,6 @@
     }
   }
 
-  // Spawn powerup randomly
   function spawnPowerup() {
     const type = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
     const size = 14;
@@ -397,13 +395,12 @@
     });
   }
 
-  // Game loop
   function gameLoop() {
     // Move ball
     ball.x += ballDirX * ball.speed;
     ball.y += ballDirY * ball.speed;
 
-    // Bounce walls left/right
+    // Bounce left/right walls
     if (ball.x - ball.radius < 0) {
       ball.x = ball.radius;
       ballDirX = -ballDirX;
@@ -455,7 +452,7 @@
       }
     }
 
-    // Move paddle from inputs
+    // Move paddle
     if (pressedLeft) {
       paddle.x -= paddle.speed;
     }
@@ -464,8 +461,8 @@
     }
     paddle.x = clamp(paddle.x, 0, width - paddle.width);
 
-    // Spawn powerups
-    powerupSpawnTimer += 16.67; // approx 60fps
+    // Powerup spawning
+    powerupSpawnTimer += 16.67;
     if (powerupSpawnTimer > POWERUP_SPAWN_INTERVAL) {
       spawnPowerup();
       powerupSpawnTimer = 0;
@@ -477,28 +474,30 @@
     animationFrameId = requestAnimationFrame(gameLoop);
   }
 
-  // Score update
   function updateScore(newScore) {
     score = newScore;
-    scoreDisplay.textContent = score;
+    scoreDisplay.textContent = `Score: ${score}`;
+
+    // Update high score
+    const highScore = loadHighScore();
+    if (score > highScore) {
+      saveHighScore(score);
+      highScoreDisplay.textContent = `Best: ${score}`;
+    }
   }
 
-  // Game over handler
   function gameOver() {
     cancelAnimationFrame(animationFrameId);
     finalScore.textContent = score;
+    finalHighScore.textContent = loadHighScore();
     showScreen(overScreen);
-    submitScore(score);
-    loadLeaderboard();
   }
 
-  // Show/hide screens
   function showScreen(screen) {
     [homeScreen, diffScreen, gameScreen, overScreen].forEach(s => s.classList.remove('active'));
     screen.classList.add('active');
   }
 
-  // Controls setup
   function setupControls() {
     leftBtn.addEventListener('touchstart', e => { e.preventDefault(); pressedLeft = true; });
     leftBtn.addEventListener('touchend', e => { e.preventDefault(); pressedLeft = false; });
@@ -507,7 +506,6 @@
     rightBtn.addEventListener('touchend', e => { e.preventDefault(); pressedRight = false; });
     rightBtn.addEventListener('touchcancel', () => { pressedRight = false; });
 
-    // Mouse for desktop testing
     leftBtn.addEventListener('mousedown', e => { e.preventDefault(); pressedLeft = true; });
     leftBtn.addEventListener('mouseup', e => { e.preventDefault(); pressedLeft = false; });
     leftBtn.addEventListener('mouseleave', () => { pressedLeft = false; });
@@ -515,7 +513,6 @@
     rightBtn.addEventListener('mouseup', e => { e.preventDefault(); pressedRight = false; });
     rightBtn.addEventListener('mouseleave', () => { pressedRight = false; });
 
-    // Difficulty selection clicks
     diffGrid.addEventListener('click', e => {
       const diffDiv = e.target.closest('.diff');
       if (!diffDiv) return;
@@ -524,86 +521,32 @@
       difficulty = diffDiv.dataset.diff;
       diffLabel.textContent = difficulty.toUpperCase();
     });
+
+    playBtn.addEventListener('click', () => showScreen(diffScreen));
+    backHomeBtn.addEventListener('click', () => showScreen(homeScreen));
+    startGameBtn.addEventListener('click', () => {
+      showScreen(gameScreen);
+      init();
+    });
+    retryBtn.addEventListener('click', () => showScreen(diffScreen));
+    retryBtn2.addEventListener('click', () => showScreen(diffScreen));
+    goHomeBtn.addEventListener('click', () => showScreen(homeScreen));
+    backHomeBtn2.addEventListener('click', () => showScreen(homeScreen));
   }
 
-  // Submit score to server
-  async function submitScore(score) {
-    try {
-      // For simplicity, prompt player for name
-      let name = prompt("Enter your name for leaderboard:", "Player");
-      if (!name) name = "Player";
-
-      await fetch('http://localhost:3000/leaderboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, score })
-      });
-    } catch (e) {
-      console.error('Failed to submit score', e);
-    }
-  }
-
-  // Load leaderboard from server and display
-  async function loadLeaderboard() {
-    try {
-      const res = await fetch('http://localhost:3000/leaderboard');
-      if (!res.ok) throw new Error('Failed to load leaderboard');
-      const data = await res.json();
-
-      leaderboardList.innerHTML = '';
-      miniLeaderboard.innerHTML = '';
-      data.slice(0, 5).forEach((entry, i) => {
-        const li = document.createElement('li');
-        li.textContent = `${i + 1}. ${entry.name}: ${entry.score}`;
-        leaderboardList.appendChild(li);
-
-        if (i < 3) {
-          const miniLi = document.createElement('li');
-          miniLi.textContent = `${entry.name}: ${entry.score}`;
-          miniLeaderboard.appendChild(miniLi);
-        }
-      });
-    } catch (e) {
-      leaderboardList.innerHTML = '<li>Unable to load leaderboard</li>';
-      miniLeaderboard.innerHTML = '<li>Unable to load leaderboard</li>';
-    }
-  }
-
-  // Dummy sounds placeholder (can be replaced with actual sounds)
   function playBounce() {
-    // Optional: Add sound effect here
+    // Placeholder for sound effect
   }
   function playPickup() {
-    // Optional: Add sound effect here
+    // Placeholder for powerup pickup sound
   }
 
-  // Button event listeners
-  playBtn.addEventListener('click', () => showScreen(diffScreen));
-  leaderboardBtn.addEventListener('click', () => {
-    showScreen(overScreen);
-    loadLeaderboard();
-  });
-  backHomeBtn.addEventListener('click', () => showScreen(homeScreen));
-  backHomeBtn2.addEventListener('click', () => showScreen(homeScreen));
-  startGameBtn.addEventListener('click', () => {
-    showScreen(gameScreen);
-    init();
-  });
-  retryBtn.addEventListener('click', () => {
-    showScreen(diffScreen);
-  });
-  retryBtn2.addEventListener('click', () => {
-    showScreen(diffScreen);
-  });
-  goHomeBtn.addEventListener('click', () => showScreen(homeScreen));
-
-  // Initialize controls and leaderboard on page load
+  // Start on home screen
+  showScreen(homeScreen);
   setupControls();
-  loadLeaderboard();
 
 })();
 </script>
+
 </body>
 </html>
-
-
