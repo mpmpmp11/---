@@ -25,7 +25,7 @@
   }
   #gameContainer {
     width: 100vw;
-    height: 100vh;
+    height: calc(100vh - 40px);
     max-width: 480px;
     margin: 0 auto;
     display: flex;
@@ -33,12 +33,13 @@
     justify-content: space-between;
     align-items: center;
     user-select: none;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
   }
 
   h1 {
     font-weight: normal;
-    font-size: 2.4rem;
-    margin: 10px 0 0 0;
+    font-size: 2rem;
+    margin: 8px 0 0 0;
     text-align: center;
 
     /* Cross-browser stroke with fallback */
@@ -55,13 +56,13 @@
 
   #scoreBoard {
     font-weight: normal;
-    font-size: 1.4rem;
-    margin-top: 6px;
+    font-size: 1.2rem;
+    margin-top: 4px;
     text-align: center;
 
     color: white;
     -webkit-text-stroke: 1px black;
-  
+ 
     text-shadow:
       1.5px 1.5px 0 black,
       -1.5px -1.5px 0 black,
@@ -72,6 +73,8 @@
 
   /* Canvas styling */
   #gameCanvas {
+    width: 360px;
+    height: 520px;
     background: linear-gradient(180deg, #1e1e2f 0%, #121229 100%);
     border-radius: 15px;
     box-shadow:
@@ -84,7 +87,7 @@
   #mobileControls {
     width: 100%;
     max-width: 480px;
-    padding: 0 20px 15px 20px;
+    padding: 0 20px 20px 20px;
     display: flex;
     justify-content: space-between;
     user-select: none;
@@ -95,8 +98,8 @@
     background: rgba(255, 255, 255, 0.15);
     border: 3px solid #26a69a;
     color: #ffffff;
-    font-size: 2.4rem;
-    padding: 14px 22px;
+    font-size: 2rem;
+    padding: 10px 18px;
     border-radius: 12px;
     box-shadow:
       0 4px 6px rgba(0, 0, 0, 0.3),
@@ -114,11 +117,11 @@
   /* Instructions text */
   #instructions {
     font-weight: normal;
-    font-size: 1rem;
-    margin: 0 0 10px 0;
+    font-size: 0.9rem;
+    margin: 0 0 8px 0;
     color: #e0e0e0;
     -webkit-text-stroke: 0.6px black;
-    
+  
     text-shadow:
       1px 1px 0 black,
       -1px -1px 0 black,
@@ -135,7 +138,7 @@
 <div id="gameContainer">
   <h1>Paddle Quest</h1>
   <div id="scoreBoard">Score: 0 | High Score: 0</div>
-  <canvas id="gameCanvas" width="360" height="600" aria-label="Game canvas"></canvas>
+  <canvas id="gameCanvas" width="360" height="520" aria-label="Game canvas"></canvas>
   <div id="instructions">Use the arrow buttons below to move the paddle.</div>
   <div id="mobileControls">
     <button id="leftBtn" class="controlBtn" aria-label="Move paddle left">←</button>
@@ -151,14 +154,14 @@
   const leftBtn = document.getElementById('leftBtn');
   const rightBtn = document.getElementById('rightBtn');
 
-  // Game dimensions and controls
-  const paddleHeight = 12;
-  const paddleWidth = 90;
+  // Adjusted game variables
+  const paddleHeight = 10;
+  const paddleWidth = 75;
   let paddleX = (canvas.width - paddleWidth) / 2;
 
-  const ballRadius = 10;
+  const ballRadius = 9;
   let ballX = canvas.width / 2;
-  let ballY = 50;
+  let ballY = 45;
   let dx = 3;
   let dy = 3;
 
@@ -169,7 +172,6 @@
   let highScore = localStorage.getItem('paddleQuestHighScore') || 0;
   scoreBoard.textContent = `Score: ${score} | High Score: ${highScore}`;
 
-  // Listen for keyboard events
   document.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight') rightPressed = true;
     if (e.key === 'ArrowLeft') leftPressed = true;
@@ -179,7 +181,6 @@
     if (e.key === 'ArrowLeft') leftPressed = false;
   });
 
-  // Touch controls
   leftBtn.addEventListener('touchstart', e => { e.preventDefault(); leftPressed = true; });
   leftBtn.addEventListener('touchend', e => { e.preventDefault(); leftPressed = false; });
   rightBtn.addEventListener('touchstart', e => { e.preventDefault(); rightPressed = true; });
@@ -188,7 +189,7 @@
   function drawPaddle() {
     ctx.beginPath();
     ctx.rect(paddleX, canvas.height - paddleHeight - 20, paddleWidth, paddleHeight);
-    ctx.fillStyle = '#26a69a'; // turquoise color
+    ctx.fillStyle = '#26a69a';
     ctx.shadowColor = '#1b7a74';
     ctx.shadowBlur = 10;
     ctx.fill();
@@ -198,7 +199,7 @@
   function drawBall() {
     ctx.beginPath();
     ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
-    ctx.fillStyle = '#ff7043'; // coral orange
+    ctx.fillStyle = '#ff7043';
     ctx.shadowColor = '#bf360c';
     ctx.shadowBlur = 15;
     ctx.fill();
@@ -216,19 +217,15 @@
     drawBall();
     drawScore();
 
-    // Ball movement
     ballX += dx;
     ballY += dy;
 
-    // Bounce from left and right walls
     if (ballX + dx > canvas.width - ballRadius || ballX + dx < ballRadius) {
       dx = -dx;
     }
-    // Bounce from top
     if (ballY + dy < ballRadius) {
       dy = -dy;
     } else if (ballY + dy > canvas.height - paddleHeight - 20 - ballRadius) {
-      // Check paddle collision
       if (ballX > paddleX && ballX < paddleX + paddleWidth) {
         dy = -dy;
         score++;
@@ -237,16 +234,14 @@
           localStorage.setItem('paddleQuestHighScore', highScore);
         }
       } else {
-        // Game Over - reset game
         score = 0;
         ballX = canvas.width / 2;
-        ballY = 50;
+        ballY = 45;
         dx = 3;
         dy = 3;
       }
     }
 
-    // Paddle movement
     if (rightPressed && paddleX < canvas.width - paddleWidth) {
       paddleX += 7;
     }
