@@ -1,438 +1,385 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-<title>Gravity Swap</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Lilita+One&display=swap');
-
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    margin: 0;
-    background: #121212;
-    color: white;
-    font-family: 'Lilita One', cursive;
-    overflow: hidden;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  #gameContainer {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    background: linear-gradient(180deg, #1e1e1e, #121212);
-    overflow: hidden;
-  }
-
-  #levelDisplay {
-    position: absolute;
-    top: 12px;
-    width: 100%;
-    text-align: center;
-    font-size: 2.5rem;
-    letter-spacing: 2px;
-    user-select: none;
-  }
-
-  #canvas {
-    background: #222;
-    display: block;
-    margin: 50px auto 0 auto;
-    border-radius: 12px;
-    box-shadow: 0 0 20px #0ff;
-  }
-
-  /* Controls */
-  #controls {
-    position: absolute;
-    bottom: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-  }
-  .btn {
-    background: #0ff;
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    font-size: 2rem;
-    color: #121212;
-    font-weight: bold;
-    user-select: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 10px #0ffaaaff;
-    cursor: pointer;
-    touch-action: manipulation;
-  }
-  .btn:active {
-    background: #0aa;
-  }
-
-  #swapHint {
-    position: absolute;
-    bottom: 100px;
-    width: 100%;
-    text-align: center;
-    color: #0ff;
-    font-size: 1.2rem;
-    user-select: none;
-    pointer-events: none;
-    opacity: 0.7;
-  }
-
-  /* Game Over / Level Complete Overlay */
-  #overlay {
-    position: absolute;
-    top:0; left:0; right:0; bottom:0;
-    background: rgba(0,0,0,0.85);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: #0ff;
-    font-size: 2.5rem;
-    font-family: 'Lilita One', cursive;
-    text-align: center;
-    z-index: 10;
-    display: none;
-  }
-
-  #overlay button {
-    margin-top: 20px;
-    background: #0ff;
-    color: #121212;
-    font-size: 1.5rem;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 25px;
-    cursor: pointer;
-    font-family: 'Lilita One', cursive;
-    user-select: none;
-  }
-
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Paddle Quest - Score System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body, html {
+      margin: 0; padding: 0;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #homeMenu, #gameArea {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      position: relative;
+    }
+    #homeMenu {
+      background: #222;
+    }
+    #gameArea {
+      display: none;
+      position: relative;
+      background: #000;
+    }
+    canvas {
+      background: #111;
+      display: block;
+      border: 2px solid #0ff;
+      border-radius: 10px;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 15px;
+      touch-action: none;
+    }
+    .controls img {
+      width: 60px;
+      height: 60px;
+      user-select: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      -webkit-user-drag: none;
+    }
+    .controls img:active {
+      transform: scale(0.9);
+      box-shadow: 0 0 10px #0ff;
+    }
+    .topButtons {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 12px;
+      z-index: 10;
+    }
+    .topButtons img {
+      width: 45px;
+      height: 45px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      -webkit-user-drag: none;
+    }
+    .topButtons img:active {
+      transform: scale(0.9);
+      box-shadow: 0 0 12px #0ff;
+    }
+    #pauseOverlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.75);
+      color: #0ff;
+      font-family: 'Lilita One', cursive;
+      font-size: 7vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      z-index: 9;
+      display: none;
+      -webkit-user-select: none;
+    }
+    #scoreBoard {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      color: #0ff;
+      font-family: 'Lilita One', cursive;
+      font-size: 4vw;
+      user-select: none;
+      z-index: 11;
+      text-shadow: 0 0 6px #0ff;
+    }
+    button {
+      padding: 14px 30px;
+      font-size: 24px;
+      border: none;
+      border-radius: 8px;
+      background: #0ff;
+      color: #000;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    button:hover {
+      background: #0cc;
+    }
+  </style>
 </head>
 <body>
-  <div id="gameContainer">
-    <div id="levelDisplay">Level 1</div>
-    <canvas id="canvas" width="360" height="600"></canvas>
 
-    <div id="swapHint">Tap anywhere to swap gravity</div>
+<!-- HOME MENU -->
+<div id="homeMenu">
+  <h1>Paddle Quest</h1>
+  <button id="startBtn">Start Game</button>
+</div>
 
-    <div id="controls">
-      <div id="leftBtn" class="btn">&#8592;</div>
-      <div id="rightBtn" class="btn">&#8594;</div>
-    </div>
-
-    <div id="overlay">
-      <div id="overlayText"></div>
-      <button id="nextBtn">Next Level</button>
-      <button id="restartBtn">Restart Level</button>
-    </div>
+<!-- GAME AREA -->
+<div id="gameArea">
+  <div class="topButtons">
+    <img src="pause.png" alt="Pause" id="pauseBtn" title="Pause/Resume" />
+    <img src="home.png" alt="Home" id="homeBtn" title="Home" />
   </div>
 
+  <canvas id="gameCanvas"></canvas>
+  <div id="scoreBoard">Score: 0 | High: 0</div>
+
+  <div class="controls">
+    <img src="left.png" alt="Left" id="leftBtn" title="Move Left" />
+    <img src="right.png" alt="Right" id="rightBtn" title="Move Right" />
+  </div>
+
+  <div id="pauseOverlay">Game Paused</div>
+</div>
+
 <script>
-(() => {
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  const levelDisplay = document.getElementById('levelDisplay');
-  const overlay = document.getElementById('overlay');
-  const overlayText = document.getElementById('overlayText');
-  const nextBtn = document.getElementById('nextBtn');
-  const restartBtn = document.getElementById('restartBtn');
-  const swapHint = document.getElementById('swapHint');
+  const homeMenu = document.getElementById("homeMenu");
+  const gameArea = document.getElementById("gameArea");
+  const startBtn = document.getElementById("startBtn");
+  const pauseBtn = document.getElementById("pauseBtn");
+  const homeBtn = document.getElementById("homeBtn");
+  const leftBtn = document.getElementById("leftBtn");
+  const rightBtn = document.getElementById("rightBtn");
+  const pauseOverlay = document.getElementById("pauseOverlay");
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const scoreBoard = document.getElementById("scoreBoard");
 
-  const width = canvas.width;
-  const height = canvas.height;
+  // Set canvas size to fill viewport exactly (width & height)
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener("resize", () => {
+    resizeCanvas();
+    initializeGameObjects();
+  });
 
-  let currentLevel = 1;
-  const maxLevel = 10;
-
-  // Game objects sizes
-  const playerRadius = 15;
-  const playerSpeed = 3;
-  const gravityForce = 0.4;
-
-  // Player state
-  let player = {
-    x: width / 2,
-    y: height - playerRadius - 10,
-    vy: 0,
-    gravityDir: 1, // 1 = gravity down, -1 = gravity up
-    onGround: true,
+  // GAME STATE (scaled based on canvas size)
+  let paddle = {
+    widthRatio: 0.17,
+    heightRatio: 0.045,
+    speedRatio: 0.025,
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    targetX: 0,
+    speed: 0,
   };
 
-  // Controls state
-  let moveLeft = false;
-  let moveRight = false;
+  let ball = {
+    radiusRatio: 0.03,
+    x: 0,
+    y: 0,
+    radius: 0,
+    dxRatio: 0.008,
+    dyRatio: 0.008,
+    dx: 0,
+    dy: 0,
+  };
 
-  // Level data: array of obstacle positions and sizes
-  // Each obstacle: { x, y, width, height }
-  // We'll generate obstacles based on level number for difficulty
+  let rightPressed = false;
+  let leftPressed = false;
+  let gamePaused = false;
+  let animationFrameId = null;
 
-  function generateLevel(level) {
-    // Clear obstacles
-    let obstacles = [];
+  let score = 0;
+  let highScore = localStorage.getItem("paddleQuestHighScore") || 0;
 
-    // Basic idea:
-    // Number of spikes grows with level
-    // Spikes alternate between floor and ceiling
-    // Position spikes randomly along X-axis but not too close to each other
+  function initializeGameObjects() {
+    paddle.width = canvas.width * paddle.widthRatio;
+    paddle.height = canvas.height * paddle.heightRatio;
+    paddle.speed = canvas.width * paddle.speedRatio;
 
-    const spikeWidth = 40;
-    const spikeHeight = 20;
+    paddle.x = canvas.width / 2 - paddle.width / 2;
+    paddle.y = canvas.height - paddle.height - canvas.height * 0.02;
+    paddle.targetX = paddle.x;
 
-    let spikeCount = Math.min(3 + level, 10);
+    ball.radius = canvas.width * ball.radiusRatio;
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
 
-    for (let i = 0; i < spikeCount; i++) {
-      // Alternate between floor and ceiling
-      const onFloor = i % 2 === 0;
+    ball.dx = canvas.width * ball.dxRatio;
+    ball.dy = -canvas.height * ball.dyRatio;
 
-      // Random x position with margin
-      let x = 20 + Math.random() * (width - spikeWidth - 40);
+    score = 0;
+    updateScoreDisplay();
+  }
 
-      let y = onFloor ? height - spikeHeight : 0;
+  function updateScoreDisplay() {
+    scoreBoard.textContent = `Score: ${score} | High: ${highScore}`;
+  }
 
-      obstacles.push({ x, y, width: spikeWidth, height: spikeHeight, onFloor });
+  function lerp(start, end, t) {
+    return start + (end - start) * t;
+  }
+
+  startBtn.addEventListener("click", () => {
+    homeMenu.style.display = "none";
+    gameArea.style.display = "flex";
+    gamePaused = false;
+    pauseOverlay.style.display = "none";
+    initializeGameObjects();
+    animate();
+  });
+
+  pauseBtn.addEventListener("click", () => {
+    togglePause();
+  });
+
+  homeBtn.addEventListener("click", () => {
+    cancelAnimationFrame(animationFrameId);
+    gameArea.style.display = "none";
+    homeMenu.style.display = "flex";
+    gamePaused = false;
+    pauseOverlay.style.display = "none";
+  });
+
+  leftBtn.addEventListener("touchstart", e => {
+    e.preventDefault();
+    leftPressed = true;
+  });
+  leftBtn.addEventListener("touchend", e => {
+    e.preventDefault();
+    leftPressed = false;
+  });
+  rightBtn.addEventListener("touchstart", e => {
+    e.preventDefault();
+    rightPressed = true;
+  });
+  rightBtn.addEventListener("touchend", e => {
+    e.preventDefault();
+    rightPressed = false;
+  });
+
+  // Mouse support for desktop
+  leftBtn.addEventListener("mousedown", () => (leftPressed = true));
+  leftBtn.addEventListener("mouseup", () => (leftPressed = false));
+  leftBtn.addEventListener("mouseleave", () => (leftPressed = false));
+  rightBtn.addEventListener("mousedown", () => (rightPressed = true));
+  rightBtn.addEventListener("mouseup", () => (rightPressed = false));
+  rightBtn.addEventListener("mouseleave", () => (rightPressed = false));
+
+  // Keyboard support
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") rightPressed = true;
+    if (e.key === "ArrowLeft") leftPressed = true;
+    if (e.key === "p") togglePause();
+  });
+  document.addEventListener("keyup", e => {
+    if (e.key === "ArrowRight") rightPressed = false;
+    if (e.key === "ArrowLeft") leftPressed = false;
+  });
+
+  function togglePause() {
+    gamePaused = !gamePaused;
+    pauseOverlay.style.display = gamePaused ? "flex" : "none";
+    if (!gamePaused) {
+      animate();
+    } else {
+      cancelAnimationFrame(animationFrameId);
+    }
+  }
+
+  function update() {
+    // Update paddle target based on input
+    if (rightPressed) paddle.targetX += paddle.speed;
+    if (leftPressed) paddle.targetX -= paddle.speed;
+
+    // Clamp target
+    paddle.targetX = Math.min(
+      Math.max(paddle.targetX, 0),
+      canvas.width - paddle.width
+    );
+
+    // Smoothly move paddle to target
+    paddle.x = lerp(paddle.x, paddle.targetX, 0.2);
+
+    // Move ball
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+
+    // Ball collision with walls
+    if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+      ball.dx = -ball.dx;
+    }
+    if (ball.y - ball.radius < 0) {
+      ball.dy = -ball.dy;
+    } else if (ball.y + ball.radius > canvas.height) {
+      // Ball hits bottom - reset ball and paddle, update high score
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("paddleQuestHighScore", highScore);
+      }
+      initializeGameObjects();
     }
 
-    return obstacles;
+    // Ball collision with paddle
+    if (
+      ball.y + ball.radius > paddle.y &&
+      ball.x > paddle.x &&
+      ball.x < paddle.x + paddle.width
+    ) {
+      ball.dy = -ball.dy;
+      ball.y = paddle.y - ball.radius; // prevent sticking
+
+      // Increase score on paddle hit
+      score++;
+      updateScoreDisplay();
+    }
   }
 
-  let obstacles = generateLevel(currentLevel);
-
-  function resetPlayer() {
-    player.x = width / 2;
-    player.gravityDir = 1;
-    player.y = height - playerRadius - 10;
-    player.vy = 0;
-    player.onGround = true;
+  function drawPaddle() {
+    ctx.fillStyle = "#00ffcc";
+    ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
   }
 
-  function drawPlayer() {
+  function drawBall() {
     ctx.beginPath();
-    ctx.fillStyle = '#0ff';
-    ctx.shadowColor = '#0ff';
-    ctx.shadowBlur = 15;
-    ctx.arc(player.x, player.y, playerRadius, 0, Math.PI * 2);
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#ff4444";
     ctx.fill();
+    ctx.closePath();
   }
 
-  function drawObstacles() {
-    ctx.fillStyle = '#f00';
-    ctx.shadowColor = '#f00';
-    ctx.shadowBlur = 10;
-    obstacles.forEach(obs => {
-      ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-      // Draw spikes shape (triangles)
-      ctx.beginPath();
-      let spikeCount = Math.floor(obs.width / 10);
-      for (let i = 0; i < spikeCount; i++) {
-        let spikeX = obs.x + i * 10;
-        if (obs.onFloor) {
-          ctx.moveTo(spikeX, obs.y + obs.height);
-          ctx.lineTo(spikeX + 5, obs.y);
-          ctx.lineTo(spikeX + 10, obs.y + obs.height);
-        } else {
-          ctx.moveTo(spikeX, obs.y);
-          ctx.lineTo(spikeX + 5, obs.y + obs.height);
-          ctx.lineTo(spikeX + 10, obs.y);
-        }
-      }
-      ctx.fill();
-    });
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawPaddle();
+    drawBall();
   }
 
-  function drawFloorCeiling() {
-    ctx.fillStyle = '#222';
-    ctx.fillRect(0, 0, width, 10); // ceiling
-    ctx.fillRect(0, height - 10, width, 10); // floor
+  function animate() {
+    if (gamePaused) return;
+    update();
+    draw();
+    animationFrameId = requestAnimationFrame(animate);
   }
 
-  // Collision check between player and obstacles
-  function checkCollision() {
-    for (let obs of obstacles) {
-      // Simple circle-rect collision
-      let closestX = Math.max(obs.x, Math.min(player.x, obs.x + obs.width));
-      let closestY = Math.max(obs.y, Math.min(player.y, obs.y + obs.height));
-
-      let dx = player.x - closestX;
-      let dy = player.y - closestY;
-
-      if (dx * dx + dy * dy < playerRadius * playerRadius) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Check if player reached goal (right edge of screen)
-  function checkGoal() {
-    return player.x > width - playerRadius - 5;
-  }
-
-  // Gravity Swap function
-  function swapGravity() {
-    player.gravityDir *= -1;
-
-    if (player.gravityDir === 1) {
-      player.y = Math.min(player.y, height - playerRadius - 10);
-    } else {
-      player.y = Math.max(player.y, playerRadius + 10);
-    }
-  }
-
-  // Game state
-  let gameRunning = true;
-  let levelComplete = false;
-
-  // Input Handlers
-
-  function onTouchStart(e) {
-    e.preventDefault();
-
-    // Tap anywhere except on left/right buttons to swap gravity
-    if (e.target.id !== 'leftBtn' && e.target.id !== 'rightBtn') {
-      swapGravity();
-    }
-  }
-
-  function onKeyDown(e) {
-    if (e.code === 'ArrowLeft') moveLeft = true;
-    else if (e.code === 'ArrowRight') moveRight = true;
-    else if (e.code === 'Space') swapGravity();
-  }
-
-  function onKeyUp(e) {
-    if (e.code === 'ArrowLeft') moveLeft = false;
-    else if (e.code === 'ArrowRight') moveRight = false;
-  }
-
-  // Mobile buttons
-  const leftBtn = document.getElementById('leftBtn');
-  const rightBtn = document.getElementById('rightBtn');
-
-  leftBtn.addEventListener('touchstart', e => {
-    e.preventDefault();
-    moveLeft = true;
-  });
-  leftBtn.addEventListener('touchend', e => {
-    e.preventDefault();
-    moveLeft = false;
-  });
-
-  rightBtn.addEventListener('touchstart', e => {
-    e.preventDefault();
-    moveRight = true;
-  });
-  rightBtn.addEventListener('touchend', e => {
-    e.preventDefault();
-    moveRight = false;
-  });
-
-  // Restart and next buttons
-  restartBtn.addEventListener('click', () => {
-    overlay.style.display = 'none';
-    resetPlayer();
-    gameRunning = true;
-    levelComplete = false;
-  });
-
-  nextBtn.addEventListener('click', () => {
-    if (currentLevel < maxLevel) {
-      currentLevel++;
-      levelDisplay.textContent = `Level ${currentLevel}`;
-      obstacles = generateLevel(currentLevel);
-      overlay.style.display = 'none';
-      resetPlayer();
-      gameRunning = true;
-      levelComplete = false;
-    }
-  });
-
-  // Main game loop
-  function gameLoop() {
-    if (!gameRunning) {
-      requestAnimationFrame(gameLoop);
-      return;
-    }
-
-    ctx.clearRect(0, 0, width, height);
-
-    drawFloorCeiling();
-    drawObstacles();
-
-    // Horizontal movement
-    if (moveLeft) player.x -= playerSpeed;
-    if (moveRight) player.x += playerSpeed;
-
-    // Clamp horizontal position
-    player.x = Math.min(Math.max(player.x, playerRadius), width - playerRadius);
-
-    // Apply gravity
-    player.vy += gravityForce * player.gravityDir;
-    player.y += player.vy;
-
-    // Floor or ceiling collision
-    if (player.gravityDir === 1) {
-      if (player.y > height - playerRadius - 10) {
-        player.y = height - playerRadius - 10;
-        player.vy = 0;
-        player.onGround = true;
-      } else {
-        player.onGround = false;
-      }
-    } else {
-      if (player.y < playerRadius + 10) {
-        player.y = playerRadius + 10;
-        player.vy = 0;
-        player.onGround = true;
-      } else {
-        player.onGround = false;
-      }
-    }
-
-    drawPlayer();
-
-    // Check collision
-    if (checkCollision()) {
-      gameRunning = false;
-      overlayText.textContent = 'You Died!';
-      overlay.style.display = 'flex';
-    }
-
-    // Check goal
-    if (checkGoal()) {
-      gameRunning = false;
-      levelComplete = true;
-      overlayText.textContent = 'Level Complete!';
-      overlay.style.display = 'flex';
-      if (currentLevel >= maxLevel) {
-        nextBtn.style.display = 'none';
-      } else {
-        nextBtn.style.display = 'inline-block';
-      }
-    }
-
-    requestAnimationFrame(gameLoop);
-  }
-
-  // Event listeners
-  window.addEventListener('keydown', onKeyDown);
-  window.addEventListener('keyup', onKeyUp);
-  window.addEventListener('touchstart', onTouchStart);
-
-  // Initialize
-  resetPlayer();
-  gameLoop();
-})();
+  // Initialize objects for the first time
+  initializeGameObjects();
 </script>
 
 </body>
