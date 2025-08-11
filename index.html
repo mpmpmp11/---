@@ -2,306 +2,717 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Paddle Quest</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Lilita+One&display=swap');
-  body {
-    margin: 0;
-    background-color: yellow; /* Changed to yellow */
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  canvas {
-    background-color: yellow; /* Changed to yellow */
-    display: block;
-    touch-action: none;
-  }
-  /* Common text style */
-  .game-text {
+
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #111;
     font-family: 'Lilita One', cursive;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none;
+    overflow: hidden;
     color: white;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.7);
-    -webkit-text-stroke: 0;
+  }
+
+  #gameCanvas {
+    background: #222;
+    display: block;
+    margin: 0 auto;
+    touch-action: none;
+    position: relative;
+    border: 3px solid #fff;
+    border-radius: 10px;
+  }
+
+  /* Text style with outline and shadow as per spec */
+  .game-text {
+    color: white;
+    font-family: 'Lilita One', cursive;
+    font-weight: normal;
+    text-align: center;
+    text-shadow:
+      0px 2px 1px rgba(0,0,0,1),
+      -1px 0 0 black,
+      1px 0 0 black,
+      0 -1px 0 black,
+      0 1px 0 black;
+    -webkit-text-stroke: 1.5px black;
+    user-select: none;
+  }
+
+  /* Buttons style */
+  .btn {
+    font-family: 'Lilita One', cursive;
+    font-weight: normal;
+    font-size: 20px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    margin: 10px auto;
+    display: block;
+    width: 180px;
+    color: white;
+    text-shadow:
+      0px 2px 1px rgba(0,0,0,1),
+      -1px 0 0 black,
+      1px 0 0 black,
+      0 -1px 0 black,
+      0 1px 0 black;
+    -webkit-text-stroke: 1.5px black;
+  }
+  .btn-yellow {
+    background-color: #f4c542;
+  }
+  .btn-gray {
+    background-color: #444;
+  }
+
+  /* Container for bottom controls */
+  #controlsContainer {
+    position: fixed;
+    bottom: env(safe-area-inset-bottom, 10px);
+    left: 0;
+    right: 0;
+    height: 90px;
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 30px;
+    box-sizing: border-box;
+    user-select: none;
+    z-index: 10;
+  }
+
+  .arrow-btn {
+    width: 70px;
+    height: 70px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .arrow-btn:active {
+    background: rgba(255,255,255,0.3);
+  }
+
+  /* Arrow SVG styling */
+  .arrow-svg {
+    fill: white;
+    filter:
+      drop-shadow(0 2px 1px black);
+  }
+
+  /* Pause and Home buttons container */
+  #topButtons {
+    position: fixed;
+    top: env(safe-area-inset-top, 10px);
+    left: 0;
+    right: 0;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 20px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    user-select: none;
+    z-index: 10;
+  }
+
+  .top-btn {
+    background: rgba(255,255,255,0.15);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: white;
+    font-family: 'Lilita One', cursive;
+    font-weight: normal;
+    font-size: 18px;
+    text-shadow:
+      0px 2px 1px rgba(0,0,0,1),
+      -1px 0 0 black,
+      1px 0 0 black,
+      0 -1px 0 black,
+      0 1px 0 black;
+    -webkit-text-stroke: 1.5px black;
+    border: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .top-btn:active {
+    background: rgba(255,255,255,0.3);
+  }
+
+  /* Overlay screen (pause, missions, leaderboard) */
+  #overlayScreen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+    z-index: 50;
+  }
+
+  #overlayScreen.show {
+    display: flex;
+  }
+
+  #overlayTitle {
+    font-size: 36px;
+    margin-bottom: 20px;
+    user-select: none;
+  }
+
+  #missionsList {
+    max-width: 400px;
+    width: 100%;
+  }
+
+  .mission-item {
+    background: #333;
+    margin: 8px 0;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 20px;
+    user-select: none;
+    text-shadow:
+      0px 2px 1px rgba(0,0,0,1),
+      -1px 0 0 black,
+      1px 0 0 black,
+      0 -1px 0 black,
+      0 1px 0 black;
+  }
+
+  /* Back arrow button top-left for overlay screens */
+  #backArrowBtn {
+    position: fixed;
+    top: env(safe-area-inset-top, 10px);
+    left: 10px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 60;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #backArrowBtn:active {
+    background: rgba(255,255,255,0.3);
+  }
+  #backArrowBtn svg {
+    fill: white;
+    filter: drop-shadow(0 2px 1px black);
+  }
+
+  /* Score container */
+  #scoreContainer {
+    position: fixed;
+    top: env(safe-area-inset-top, 10px);
+    right: 10px;
+    text-align: right;
+    user-select: none;
+    z-index: 10;
+  }
+  #scoreCurrent, #scoreHigh {
+    font-size: 20px;
+    line-height: 1.3;
+    color: white;
+    text-shadow:
+      0px 2px 1px rgba(0,0,0,1),
+      -1px 0 0 black,
+      1px 0 0 black,
+      0 -1px 0 black,
+      0 1px 0 black;
+    -webkit-text-stroke: 1.5px black;
+  }
+
+  /* Pause text */
+  #pauseText {
+    color: white;
+    font-size: 28px;
+    text-align: center;
+    margin-top: 20px;
+    user-select: none;
+    text-shadow:
+      0px 2px 1px rgba(0,0,0,1),
+      -1px 0 0 black,
+      1px 0 0 black,
+      0 -1px 0 black,
+      0 1px 0 black;
+    -webkit-text-stroke: 1.5px black;
+  }
+  #pauseSubText {
+    color: white;
+    font-size: 18px;
+    margin-top: 8px;
+    user-select: none;
+    text-shadow:
+      0px 2px 1px rgba(0,0,0,1),
+      -1px 0 0 black,
+      1px 0 0 black,
+      0 -1px 0 black,
+      0 1px 0 black;
+    -webkit-text-stroke: 1.5px black;
   }
 </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
+
+<canvas id="gameCanvas" width="360" height="640" style="touch-action:none;"></canvas>
+
+<!-- Top buttons: Pause and Home -->
+<div id="topButtons">
+  <button id="pauseBtn" class="top-btn" aria-label="Pause Game">Pause</button>
+  <button id="homeBtn" class="top-btn" aria-label="Home Menu">Home</button>
+</div>
+
+<!-- Score display -->
+<div id="scoreContainer" aria-live="polite" aria-atomic="true">
+  <div id="scoreCurrent">Score: 0</div>
+  <div id="scoreHigh">High Score: 0</div>
+</div>
+
+<!-- Bottom arrow controls -->
+<div id="controlsContainer" aria-label="Game Controls">
+  <div id="leftArrow" class="arrow-btn" aria-label="Move Paddle Left" role="button" tabindex="0" >
+    <svg class="arrow-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36">
+      <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+    </svg>
+  </div>
+  <div id="rightArrow" class="arrow-btn" aria-label="Move Paddle Right" role="button" tabindex="0">
+    <svg class="arrow-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36">
+      <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
+    </svg>
+  </div>
+</div>
+
+<!-- Overlay for Home menu, Leaderboard, Missions, Pause -->
+<div id="overlayScreen" role="dialog" aria-modal="true" aria-hidden="true" tabindex="-1">
+  <div id="backArrowBtn" aria-label="Go Back" role="button" tabindex="0" title="Back">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+      <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+    </svg>
+  </div>
+
+  <div id="overlayContent" style="text-align:center; width:100%; max-width:480px; margin-top: 50px;">
+    <!-- Content inserted dynamically -->
+  </div>
+</div>
+
 <script>
+(() => {
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
 
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  // Game dimensions & constants
+  const GAME_WIDTH = canvas.width; // 360
+  const GAME_HEIGHT = canvas.height; // 640
+  const PADDLE_WIDTH = 80;
+  const PADDLE_HEIGHT = 15;
+  const PADDLE_Y = GAME_HEIGHT - 90; // above controls area
+  const BALL_RADIUS = 12;
 
-  // Game states
-  let currentScreen = 'home'; // home, playing, leaderboard, missions, paused, gameover
+  // UI Elements
+  const leftArrow = document.getElementById('leftArrow');
+  const rightArrow = document.getElementById('rightArrow');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const homeBtn = document.getElementById('homeBtn');
+  const overlayScreen = document.getElementById('overlayScreen');
+  const overlayContent = document.getElementById('overlayContent');
+  const backArrowBtn = document.getElementById('backArrowBtn');
+  const scoreCurrent = document.getElementById('scoreCurrent');
+  const scoreHigh = document.getElementById('scoreHigh');
+
+  // Game State
+  let paddleX = (GAME_WIDTH - PADDLE_WIDTH) / 2;
+  let ballX = GAME_WIDTH / 2;
+  let ballY = 100;
+  let ballSpeedX = 3;
+  let ballSpeedY = 3;
+  let ballSpeedIncreaseRate = 0.0025; // speed increase per frame
   let score = 0;
-  let highScore = localStorage.getItem('pqHighScore') || 0;
-
-  // Paddle properties
-  const paddleWidth = 120;
-  const paddleHeight = 20;
-  let paddleX = (canvas.width - paddleWidth) / 2;
-  const paddleY = canvas.height - paddleHeight - 30;
-  const paddleSpeed = 7;
-
-  // Ball properties
-  const ballRadius = 15;
-  let ballX = canvas.width / 2;
-  let ballY = ballRadius + 10;
-  let ballSpeedX = 4;
-  let ballSpeedY = 4;
-
-  // Controls
-  let leftPressed = false;
-  let rightPressed = false;
+  let highScore = 0;
+  let gameRunning = false;
   let gamePaused = false;
-  let gameOver = false;
 
-  // Buttons positions
-  const leftButton = { x: 20, y: canvas.height - 100, w: 80, h: 80 };
-  const rightButton = { x: canvas.width - 100, y: canvas.height - 100, w: 80, h: 80 };
-  const pauseButton = { x: 20, y: 20, w: 50, h: 50 };
-  const homeButton = { x: canvas.width - 70, y: 20, w: 50, h: 50 };
-  const backButton = { x: 20, y: 20, w: 50, h: 50 }; // for missions/leaderboard back
+  // Input state
+  let moveLeft = false;
+  let moveRight = false;
 
-  // Missions example
+  // Overlay mode stack for back button
+  let overlayStack = [];
+
+  // Missions data (repeat daily)
   const missions = [
-    { text: 'Catch 10 balls', done: false },
-    { text: 'Score 20 points', done: false },
-    { text: 'Play 5 games', done: false },
-    { text: 'Reach 50 high score', done: false },
-    { text: 'Pause the game 3 times', done: false },
+    "Catch 10 balls",
+    "Score 50 points",
+    "Play for 2 minutes",
+    "Catch 5 balls in a row",
+    "Reach speed level 10"
   ];
 
-  // Load images
-  const pauseImg = new Image();
-  pauseImg.src = 'pause.png';
-  const homeImg = new Image();
-  homeImg.src = 'home.png';
-  const leftImg = new Image();
-  leftImg.src = 'left.png';
-  const rightImg = new Image();
-  rightImg.src = 'right.png';
-  const backImg = new Image();
-  backImg.src = 'left.png'; // using left arrow as back
-
-  // Touch controls
-  canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    for (let touch of e.touches) {
-      let tx = touch.clientX, ty = touch.clientY;
-      if (currentScreen === 'playing' && !gamePaused) {
-        if (tx > leftButton.x && tx < leftButton.x + leftButton.w && ty > leftButton.y && ty < leftButton.y + leftButton.h) leftPressed = true;
-        if (tx > rightButton.x && tx < rightButton.x + rightButton.w && ty > rightButton.y && ty < rightButton.y + rightButton.h) rightPressed = true;
-        if (tx > pauseButton.x && tx < pauseButton.x + pauseButton.w && ty > pauseButton.y && ty < pauseButton.y + pauseButton.h) togglePause();
-        if (tx > homeButton.x && tx < homeButton.x + homeButton.w && ty > homeButton.y && ty < homeButton.y + homeButton.h) backToHome();
-      } else if (currentScreen === 'home') {
-        // Check buttons on home
-        if (tx > canvas.width / 2 - 100 && tx < canvas.width / 2 + 100) {
-          if (ty > canvas.height / 2 && ty < canvas.height / 2 + 50) startGame(); // Play button
-          else if (ty > canvas.height / 2 + 70 && ty < canvas.height / 2 + 120) currentScreen = 'leaderboard';
-          else if (ty > canvas.height / 2 + 140 && ty < canvas.height / 2 + 190) currentScreen = 'missions';
-        }
-      } else if ((currentScreen === 'leaderboard' || currentScreen === 'missions') && tx > backButton.x && tx < backButton.x + backButton.w && ty > backButton.y && ty < backButton.y + backButton.h) {
-        currentScreen = 'home';
-      } else if (currentScreen === 'paused' && tx > 0 && tx < canvas.width && ty > 0 && ty < canvas.height) {
-        togglePause();
-      } else if (currentScreen === 'gameover' && tx > 0 && tx < canvas.width && ty > 0 && ty < canvas.height) {
-        startGame();
-      }
+  // Helper to save/load high score
+  function loadHighScore() {
+    let hs = localStorage.getItem('paddleQuestHighScore');
+    if (hs !== null) {
+      highScore = parseInt(hs, 10) || 0;
     }
-  });
+    updateScoreUI();
+  }
+  function saveHighScore() {
+    localStorage.setItem('paddleQuestHighScore', highScore.toString());
+  }
 
-  canvas.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    leftPressed = false;
-    rightPressed = false;
-  });
+  function updateScoreUI() {
+    scoreCurrent.textContent = `Score: ${score}`;
+    scoreHigh.textContent = `High Score: ${highScore}`;
+  }
 
-  // Keyboard controls for testing on PC
-  window.addEventListener('keydown', (e) => {
-    if (currentScreen !== 'playing' || gamePaused) return;
-    if (e.key === 'ArrowLeft') leftPressed = true;
-    if (e.key === 'ArrowRight') rightPressed = true;
-    if (e.key.toLowerCase() === 'p') togglePause();
-    if (e.key.toLowerCase() === 'h') backToHome();
-  });
-
-  window.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowLeft') leftPressed = false;
-    if (e.key === 'ArrowRight') rightPressed = false;
-  });
-
-  function drawText(text, x, y, size = '30px', align = 'center') {
-    ctx.font = `${size} 'Lilita One', cursive, Arial, sans-serif`;
-    ctx.fillStyle = 'white';
+  // Text drawing helper with outline and shadow exactly as specified
+  function drawText(text, x, y, fontSize = 32, align = "center") {
+    ctx.font = `${fontSize}px 'Lilita One', cursive`;
     ctx.textAlign = align;
-    ctx.shadowColor = 'rgba(0,0,0,0.7)';
-    ctx.shadowBlur = 4;
+    ctx.fillStyle = "white";
+    ctx.shadowColor = "rgba(0,0,0,1)";
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 2;
+    ctx.shadowBlur = 1;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "black";
+    ctx.strokeText(text, x, y);
     ctx.fillText(text, x, y);
   }
 
-  function drawHome() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawText('Paddle Quest', canvas.width / 2, canvas.height / 3, '70px');
-    drawText('Drag Paddle To Catch The Ball!', canvas.width / 2, canvas.height / 3 + 70, '25px');
+  // Draw everything each frame
+  function drawGame() {
+    ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Draw buttons
-    drawButton(canvas.width / 2 - 100, canvas.height / 2, 200, 50, 'PLAY', 'yellow');
-    drawButton(canvas.width / 2 - 100, canvas.height / 2 + 70, 200, 50, 'Leaderboard', 'gray');
-    drawButton(canvas.width / 2 - 100, canvas.height / 2 + 140, 200, 50, 'MISSIONS', 'gray');
-  }
-
-  function drawButton(x, y, w, h, text, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, w, h);
-    drawText(text, x + w / 2, y + h / 2 + 10, '30px');
-  }
-
-  function drawPlaying() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Draw ball
+    ctx.beginPath();
+    ctx.fillStyle = "white";
+    ctx.shadowColor = "rgba(0,0,0,1)";
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+    ctx.shadowBlur = 1;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "black";
+    ctx.arc(ballX, ballY, BALL_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
 
     // Draw paddle
-    ctx.fillStyle = '#0ff';
-    ctx.fillRect(paddleX, paddleY, paddleWidth, paddleHeight);
-
-    // Draw ball (red)
     ctx.beginPath();
-    ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
-    ctx.fillStyle = 'red';
+    ctx.fillStyle = "white";
+    ctx.shadowColor = "rgba(0,0,0,1)";
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+    ctx.shadowBlur = 1;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "black";
+    ctx.rect(paddleX, PADDLE_Y, PADDLE_WIDTH, PADDLE_HEIGHT);
     ctx.fill();
-    ctx.closePath();
-
-    // Draw score
-    drawText(`Score: ${score}`, 100, 50, '30px', 'left');
-    drawText(`High: ${highScore}`, canvas.width - 100, 50, '30px', 'right');
-
-    // Draw control buttons
-    ctx.drawImage(leftImg, leftButton.x, leftButton.y, leftButton.w, leftButton.h);
-    ctx.drawImage(rightImg, rightButton.x, rightButton.y, rightButton.w, rightButton.h);
-
-    ctx.drawImage(pauseImg, pauseButton.x, pauseButton.y, pauseButton.w, pauseButton.h);
-    ctx.drawImage(homeImg, homeButton.x, homeButton.y, homeButton.w, homeButton.h);
-
-    if (gamePaused) {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawText('Game Paused', canvas.width / 2, canvas.height / 2 - 20, '50px');
-      drawText('Tap Anywhere To Continue', canvas.width / 2, canvas.height / 2 + 40, '25px');
-    }
-
-    if (gameOver) {
-      drawText('Game Over', canvas.width / 2, canvas.height / 2 - 50, '50px');
-      drawText('Tap to Retry', canvas.width / 2, canvas.height / 2 + 20, '30px');
-    }
+    ctx.stroke();
   }
 
-  function drawLeaderboard() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawText('COMING SOON!', canvas.width / 2, canvas.height / 2, '50px');
+  // Update game physics & logic
+  function updateGame() {
+    if (gamePaused || !gameRunning) return;
 
-    // Back button
-    ctx.drawImage(backImg, backButton.x, backButton.y, backButton.w, backButton.h);
-  }
-
-  function drawMissions() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawText('MISSIONS', canvas.width / 2, 80, '50px');
-
-    for (let i = 0; i < missions.length; i++) {
-      const mission = missions[i];
-      drawText(`${i + 1}. ${mission.text}`, 60, 140 + i * 40, '25px', 'left');
+    // Move paddle smoothly if arrow pressed
+    const PADDLE_SPEED = 6;
+    if (moveLeft) {
+      paddleX -= PADDLE_SPEED;
+      if (paddleX < 0) paddleX = 0;
+    }
+    if (moveRight) {
+      paddleX += PADDLE_SPEED;
+      if (paddleX + PADDLE_WIDTH > GAME_WIDTH) paddleX = GAME_WIDTH - PADDLE_WIDTH;
     }
 
-    // Back button
-    ctx.drawImage(backImg, backButton.x, backButton.y, backButton.w, backButton.h);
-  }
-
-  function updatePlaying() {
-    if (gamePaused || gameOver) return;
-
-    if (leftPressed && paddleX > 0) paddleX -= paddleSpeed;
-    if (rightPressed && paddleX < canvas.width - paddleWidth) paddleX += paddleSpeed;
-
+    // Move ball
     ballX += ballSpeedX;
     ballY += ballSpeedY;
 
-    // Bounce off left and right
-    if (ballX < ballRadius || ballX > canvas.width - ballRadius) ballSpeedX *= -1;
-    // Bounce off top
-    if (ballY < ballRadius) ballSpeedY *= -1;
+    // Ball bounce walls left and right
+    if (ballX + BALL_RADIUS > GAME_WIDTH) {
+      ballX = GAME_WIDTH - BALL_RADIUS;
+      ballSpeedX = -ballSpeedX;
+    }
+    if (ballX - BALL_RADIUS < 0) {
+      ballX = BALL_RADIUS;
+      ballSpeedX = -ballSpeedX;
+    }
 
-    // Bounce off paddle
-    if (ballY + ballRadius > paddleY &&
-        ballX > paddleX &&
-        ballX < paddleX + paddleWidth) {
-      ballSpeedY *= -1;
+    // Ball bounce top
+    if (ballY - BALL_RADIUS < 0) {
+      ballY = BALL_RADIUS;
+      ballSpeedY = -ballSpeedY;
+    }
+
+    // Ball hits paddle?
+    if (
+      ballY + BALL_RADIUS >= PADDLE_Y &&
+      ballY + BALL_RADIUS <= PADDLE_Y + PADDLE_HEIGHT &&
+      ballX >= paddleX &&
+      ballX <= paddleX + PADDLE_WIDTH
+    ) {
+      ballY = PADDLE_Y - BALL_RADIUS;
+      ballSpeedY = -ballSpeedY;
+
+      // Add speed increase
+      if (ballSpeedX > 0) ballSpeedX += ballSpeedIncreaseRate * 100;
+      else ballSpeedX -= ballSpeedIncreaseRate * 100;
+      if (ballSpeedY > 0) ballSpeedY += ballSpeedIncreaseRate * 100;
+      else ballSpeedY -= ballSpeedIncreaseRate * 100;
+
+      // Increase score
       score++;
       if (score > highScore) {
         highScore = score;
-        localStorage.setItem('pqHighScore', highScore);
+        saveHighScore();
       }
-      // Increase speed slightly
-      ballSpeedX *= 1.05;
-      ballSpeedY *= 1.05;
+      updateScoreUI();
     }
 
-    // Missed paddle
-    if (ballY > canvas.height) {
-      gameOver = true;
-    }
-  }
-
-  function startGame() {
-    currentScreen = 'playing';
-    gameOver = false;
-    score = 0;
-    paddleX = (canvas.width - paddleWidth) / 2;
-    ballX = canvas.width / 2;
-    ballY = ballRadius + 10;
-    ballSpeedX = 4;
-    ballSpeedY = 4;
-    gamePaused = false;
-  }
-
-  function togglePause() {
-    if (currentScreen === 'playing') {
-      gamePaused = !gamePaused;
-      if (gamePaused) currentScreen = 'paused';
-      else currentScreen = 'playing';
+    // Ball missed paddle (falls below)
+    if (ballY - BALL_RADIUS > GAME_HEIGHT) {
+      stopGame();
+      showHomeMenu();
     }
   }
 
-  function backToHome() {
-    currentScreen = 'home';
-    gamePaused = false;
-    gameOver = false;
-  }
-
+  // Game Loop
   function gameLoop() {
-    switch (currentScreen) {
-      case 'home': drawHome(); break;
-      case 'playing':
-      case 'paused':
-        drawPlaying();
-        updatePlaying();
-        break;
-      case 'leaderboard': drawLeaderboard(); break;
-      case 'missions': drawMissions(); break;
-      case 'gameover': break; // Not used separately
+    updateGame();
+    drawGame();
+
+    if (!gamePaused && gameRunning) {
+      requestAnimationFrame(gameLoop);
     }
-    requestAnimationFrame(gameLoop);
   }
 
-  gameLoop();
+  // Start the game logic
+  function startGame() {
+    // Reset state
+    score = 0;
+    updateScoreUI();
+
+    paddleX = (GAME_WIDTH - PADDLE_WIDTH) / 2;
+    ballX = GAME_WIDTH / 2;
+    ballY = 100;
+    ballSpeedX = 
+    3;
+    ballSpeedY = 3;
+    gameRunning = true;
+    gamePaused = false;
+
+    hideOverlay();
+    updateScoreUI();
+    gameLoop();
+  }
+
+  // Stop game logic
+  function stopGame() {
+    gameRunning = false;
+    gamePaused = false;
+  }
+
+  // Pause game
+  function pauseGame() {
+    if (!gameRunning) return;
+    gamePaused = true;
+    showPauseOverlay();
+  }
+
+  // Resume game
+  function resumeGame() {
+    if (!gameRunning) return;
+    gamePaused = false;
+    hideOverlay();
+    gameLoop();
+  }
+
+  // Show pause overlay text
+  function showPauseOverlay() {
+    overlayContent.innerHTML = `
+      <div id="pauseText">Game Paused</div>
+      <div id="pauseSubText">Tap Anywhere To Continue</div>
+    `;
+    showOverlay();
+  }
+
+  // Show overlay and set aria
+  function showOverlay() {
+    overlayScreen.classList.add('show');
+    overlayScreen.setAttribute('aria-hidden', 'false');
+    overlayScreen.focus?.();
+  }
+
+  // Hide overlay and set aria
+  function hideOverlay() {
+    overlayScreen.classList.remove('show');
+    overlayScreen.setAttribute('aria-hidden', 'true');
+    overlayContent.innerHTML = '';
+  }
+
+  // Show Home Menu
+  function showHomeMenu() {
+    overlayContent.innerHTML = `
+      <div class="game-text" style="font-size: 48px; margin-bottom: 10px;">Paddle Quest</div>
+      <div class="game-text" style="font-size: 20px; margin-bottom: 40px;">Drag Paddle To Catch The Ball!</div>
+      <button id="playBtn" class="btn btn-yellow">PLAY</button>
+      <button id="leaderboardBtn" class="btn btn-gray">Leaderboard</button>
+      <button id="missionsBtn" class="btn btn-gray">MISSIONS</button>
+    `;
+    showOverlay();
+    overlayStack = ['home'];
+
+    // Add event listeners
+    document.getElementById('playBtn').onclick = () => {
+      hideOverlay();
+      startGame();
+    };
+    document.getElementById('leaderboardBtn').onclick = () => {
+      showLeaderboard();
+    };
+    document.getElementById('missionsBtn').onclick = () => {
+      showMissions();
+    };
+  }
+
+  // Show leaderboard screen
+  function showLeaderboard() {
+    overlayContent.innerHTML = `
+      <div class="game-text" style="font-size: 36px; margin-bottom: 20px;">COMING SOON!</div>
+    `;
+    overlayStack.push('leaderboard');
+  }
+
+  // Show missions screen
+  function showMissions() {
+    let missionsHTML = `<div class="game-text" style="font-size: 36px; margin-bottom: 20px;">MISSIONS</div><div id="missionsList">`;
+    missions.forEach((m, i) => {
+      missionsHTML += `<div class="mission-item">• ${m}</div>`;
+    });
+    missionsHTML += `</div>`;
+    overlayContent.innerHTML = missionsHTML;
+    overlayStack.push('missions');
+  }
+
+  // Back arrow handler for overlay screens
+  backArrowBtn.onclick = () => {
+    if (overlayStack.length <= 1) {
+      // If on home, just hide overlay and stop game if running
+      hideOverlay();
+      if (gameRunning) stopGame();
+      showHomeMenu();
+    } else {
+      overlayStack.pop(); // Remove current
+      let last = overlayStack[overlayStack.length - 1];
+      if (last === 'home') showHomeMenu();
+      else if (last === 'missions') showMissions();
+      else if (last === 'leaderboard') showLeaderboard();
+      else hideOverlay();
+    }
+  };
+
+  // Pause button
+  pauseBtn.onclick = () => {
+    if (gamePaused) {
+      resumeGame();
+    } else {
+      pauseGame();
+    }
+  };
+
+  // Home button stops game and shows home menu
+  homeBtn.onclick = () => {
+    stopGame();
+    showHomeMenu();
+  };
+
+  // Touch and mouse handling for left/right arrows
+  function setupArrowControls() {
+    // Left Arrow
+    leftArrow.addEventListener('touchstart', e => {
+      e.preventDefault();
+      moveLeft = true;
+    }, { passive: false });
+    leftArrow.addEventListener('touchend', e => {
+      e.preventDefault();
+      moveLeft = false;
+    }, { passive: false });
+    leftArrow.addEventListener('mousedown', e => {
+      e.preventDefault();
+      moveLeft = true;
+    });
+    leftArrow.addEventListener('mouseup', e => {
+      e.preventDefault();
+      moveLeft = false;
+    });
+    leftArrow.addEventListener('mouseleave', e => {
+      moveLeft = false;
+    });
+
+    // Right Arrow
+    rightArrow.addEventListener('touchstart', e => {
+      e.preventDefault();
+      moveRight = true;
+    }, { passive: false });
+    rightArrow.addEventListener('touchend', e => {
+      e.preventDefault();
+      moveRight = false;
+    }, { passive: false });
+    rightArrow.addEventListener('mousedown', e => {
+      e.preventDefault();
+      moveRight = true;
+    });
+    rightArrow.addEventListener('mouseup', e => {
+      e.preventDefault();
+      moveRight = false;
+    });
+    rightArrow.addEventListener('mouseleave', e => {
+      moveRight = false;
+    });
+  }
+
+  // Overlay click to resume from pause
+  overlayScreen.addEventListener('click', () => {
+    if (gamePaused) resumeGame();
+  });
+
+  // Prevent scrolling on touch devices when touching controls
+  ['touchstart', 'touchmove'].forEach(evt => {
+    document.body.addEventListener(evt, e => {
+      if (e.target.closest('#controlsContainer')) e.preventDefault();
+    }, { passive: false });
+  });
+
+  // Initialize game on page load
+  function init() {
+    loadHighScore();
+    showHomeMenu();
+    setupArrowControls();
+  }
+
+  // Kick off
+  window.onload = init;
+})();
 </script>
+
 </body>
 </html>
