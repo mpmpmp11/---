@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Paddle Quest - Score System</title>
+  <title>Paddle Quest - Mobile Responsive with Visible Arrows</title>
   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
   <style>
     * {
@@ -45,11 +45,15 @@
       border-radius: 10px;
     }
     .controls {
+      position: absolute;
+      bottom: 12vh;      /* moved up from bottom to avoid Android bottom bar */
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
       justify-content: center;
       gap: 15px;
-      margin-top: 15px;
       touch-action: none;
+      z-index: 15;
     }
     .controls img {
       width: 60px;
