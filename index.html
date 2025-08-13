@@ -1,338 +1,239 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-<title>Paddle Quest</title>
+<meta charset="utf-8" />
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>PADDLE QUEST</title>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Lilita+One&display=swap');
+  :root{ --bottom-safe: 28px; }
 
-  html, body {
-    margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
-    background: black;
-    font-family: 'Lilita One', cursive;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+  html,body{
+    margin:0; height:100%; background:#000; overflow:hidden;
+    font-family:'Lilita One', cursive;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
   }
 
-  #gameContainer {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+  /* Fixed-size game stage for perfect fit */
+  #gameContainer{
+    position:relative; width:480px; height:720px; margin:0 auto; background:#000;
+    touch-action:none;
+  }
+  #gameCanvas{
+    position:absolute; inset:0; width:480px; height:720px; display:block;
+    background:#000; image-rendering:pixelated;
   }
 
-  canvas {
-    background: #000;
-    display: block;
-    margin: 0 auto;
-    touch-action: none;
+  /* Universal text look: white + black outline + shadow (as close to your spec) */
+  .game-text{
+    color:#fff;
+    text-shadow: 0 2px 1px rgba(0,0,0,1);
+    -webkit-text-stroke:1px #000;
   }
 
-  .screen {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: #000;
-    color: white;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    box-sizing: border-box;
+  .screen{
+    position:absolute; inset:0; display:none; flex-direction:column; align-items:center;
+    padding:40px 20px 20px; box-sizing:border-box; background:#000;
+  }
+  .screen.active{ display:flex; }
+  .title{ font-size:60px; margin:6px 0 6px; }
+  .subtitle{ font-size:22px; margin:0 0 24px; }
+
+  .game-btn{
+    width:360px; height:56px; margin:10px 0; border:none; border-radius:14px;
+    font-size:28px; color:#000; background:#F5C518; cursor:pointer;
+    box-shadow:0 3px 0 #b38f00, 0 6px 12px rgba(0,0,0,.35);
+    font-family:'Lilita One', cursive;
+  }
+  .game-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #b38f00; }
+
+  /* Back arrow */
+  #backArrow{
+    position:absolute; top:10px; left:10px; width:44px; height:44px;
+    border:none; background:transparent; display:none; z-index:9999; cursor:pointer;
+  }
+  #backArrow svg{ width:100%; height:100%; fill:#fff; filter:drop-shadow(0 2px 2px #000); }
+
+  /* Game Modes cards */
+  .mode-card{
+    width:420px; border:3px solid #F5C518; border-radius:18px; padding:18px; margin:10px 0 18px;
+  }
+  .mode-title{ font-size:32px; margin:0 0 6px; }
+  .mode-desc{ font-size:18px; opacity:.9; }
+
+  /* Missions list */
+  #missionsList{ width:100%; max-width:420px; max-height:420px; overflow-y:auto; padding-right:6px; }
+  .mission-item{ background:#1f1f1f; color:#fff; padding:12px 16px; margin:8px 0; border-radius:10px; font-size:20px; }
+  .mission-item.completed{ background:#224f22; color:#9cff9c; text-decoration:line-through; }
+  #missionsList::-webkit-scrollbar{ width:8px; }
+  #missionsList::-webkit-scrollbar-thumb{ background:#444; border-radius:4px; }
+
+  /* Pause overlay */
+  #pauseScreen{
+    position:absolute; inset:0; background:rgba(0,0,0,.86); display:none;
+    align-items:center; justify-content:center; flex-direction:column; z-index:5000;
+  }
+  #pauseScreen .pause-text{ font-size:44px; margin-bottom:10px; }
+  #pauseScreen .pause-subtext{ font-size:22px; }
+
+  /* Challenge result overlay */
+  #challengeResultScreen{
+    position:absolute; inset:0; background:rgba(0,0,0,.92); display:none;
+    align-items:center; justify-content:center; flex-direction:column; padding:30px 20px; z-index:6000;
+  }
+  #challengeResultScreen h2{ font-size:42px; margin:8px 0 16px; }
+  #challengeResultScreen p{ font-size:26px; margin:0 0 20px; }
+  #challengeResultScreen button{
+    font-size:24px; padding:10px 26px; border-radius:12px; border:none; background:#F5C518; color:#000;
+    cursor:pointer; font-family:'Lilita One', cursive;
   }
 
-  .screen.active {
-    display: flex;
+  /* HUD: Puddle Points (menus only) */
+  #puddlePointsContainer{
+    position:absolute; top:10px; right:12px; font-size:20px; z-index:2000;
   }
 
-  h1, h2, h3 {
-    margin: 5px 0;
-    text-align: center;
-    color: white;
-    text-shadow:
-      -1px 2px 0 black,
-      0 2px 1px rgba(0,0,0,1);
+  /* Joystick-style bottom controls */
+  #controlButtons{
+    position:absolute; left:0; right:0; bottom:var(--bottom-safe); height:128px;
+    display:flex; justify-content:space-between; align-items:center; padding:0 18px;
+    box-sizing:border-box; z-index:3000; pointer-events:none;
   }
+  .joy{
+    pointer-events:auto; -webkit-tap-highlight-color:transparent; user-select:none;
+    width:110px; height:110px; border-radius:55px;
+    background:rgba(255,255,255,0.18);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: inset 0 0 0 3px rgba(245,197,24,0.9), 0 6px 16px rgba(0,0,0,.35);
+    backdrop-filter: blur(2px);
+  }
+  .joy svg{ width:60px; height:60px; fill:#F5C518; pointer-events:none; }
 
-  /* Buttons styled with Lilita One font */
-  button {
-    font-family: 'Lilita One', cursive;
-    font-size: 24px;
-    padding: 12px 24px;
-    margin: 10px 0;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    user-select: none;
-    text-shadow:
-      -1px 2px 0 black;
-    box-shadow: 0 0 6px #000;
-    transition: background-color 0.2s ease;
-  }
-  button:active {
-    filter: brightness(0.8);
-  }
-
-  .yellow-btn {
-    background-color: #f9d71c;
-    color: black;
-  }
-
-  .mission-item {
-    font-size: 20px;
-    margin: 8px 0;
-    user-select: none;
-  }
-  .mission-item.completed {
-    text-decoration: line-through;
-    color: #4CAF50;
-  }
-
-  /* Layout for game modes options */
-  .game-mode-box {
-    border: 3px solid white;
-    padding: 15px;
-    margin: 10px;
-    border-radius: 15px;
-    cursor: pointer;
-    max-width: 90vw;
-  }
-  .game-mode-box:hover {
-    background-color: #222;
-  }
-  .game-mode-title {
-    font-size: 28px;
-    margin-bottom: 5px;
-  }
-  .game-mode-desc {
-    font-size: 18px;
-    margin-bottom: 10px;
-  }
-  .game-mode-play-btn {
-    background-color: #f9d71c;
-    border-radius: 12px;
-    padding: 10px 20px;
-    font-size: 20px;
-    user-select: none;
-  }
-
-  /* Missions & leaderboard scroll container */
-  #missionsList {
-    width: 100%;
-    max-height: 300px;
-    overflow-y: auto;
-    margin-top: 15px;
-  }
-
-  /* Control buttons container */
-  #controlButtons {
-    position: fixed;
-    bottom: 10px;
-    left: 0;
-    width: 100%;
-    display: none; /* Hidden by default */
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    user-select: none;
-    pointer-events: auto;
-  }
-  #controlButtons.active {
-    display: flex;
-  }
-
-  /* Individual buttons in controls */
-  .arrow-btn, #pauseBtn, #homeBtn {
-    width: 64px;
-    height: 64px;
-    background: rgba(255,255,255,0.1);
-    border: 3px solid white;
-    border-radius: 50%;
-    color: white;
-    font-size: 36px;
-    line-height: 60px;
-    text-align: center;
-    user-select: none;
-    touch-action: manipulation;
-    box-shadow:
-      0 0 4px black;
-  }
-  .arrow-btn:active, #pauseBtn:active, #homeBtn:active {
-    background: rgba(255,255,255,0.3);
-  }
-
-  /* Position pause and home button in middle of left and right arrows */
-  #pauseHomeWrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  /* Puddle points container */
-  #puddlePointsContainer {
-    position: fixed;
-    top: 50px;
-    left: 10px;
-    font-size: 22px;
-    color: white;
-    user-select: none;
-    text-shadow:
-      -1px 2px 0 black;
-    z-index: 1000;
-  }
-
-  /* Pause screen overlay */
-  #pauseScreen {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.8);
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    font-size: 32px;
-    text-align: center;
-    user-select: none;
-  }
-
-  /* Challenge result screen */
-  #challengeResultScreen {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.9);
-    color: white;
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    user-select: none;
-  }
-  #challengeResultScreen button {
-    margin-top: 20px;
-  }
-
-  /* Back arrow button */
-  #backArrow {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    font-size: 38px;
-    cursor: pointer;
-    color: white;
-    user-select: none;
-    display: none;
-    z-index: 10000;
-    text-shadow:
-      -1px 2px 0 black;
-  }
-  #backArrow:active {
-    filter: brightness(0.8);
-  }
-
+  #midCluster{ display:flex; flex-direction:row; gap:18px; align-items:center; justify-content:center; }
+  .mid{ width:100px; height:100px; border-radius:50px; }
+  .controls-hidden #controlButtons{ display:none; }
 </style>
 </head>
 <body>
-<div id="gameContainer">
-  <canvas id="gameCanvas"></canvas>
+  <div id="gameContainer" class="controls-hidden">
+    <canvas id="gameCanvas" width="480" height="720"></canvas>
 
-  <!-- Puddle Points display -->
-  <div id="puddlePointsContainer">Puddle Points: 0</div>
-
-  <!-- Control buttons (arrows + pause/home) -->
-  <div id="controlButtons" >
-    <button id="leftArrow" class="arrow-btn">&#8592;</button>
-
-    <div id="pauseHomeWrapper">
-      <button id="pauseBtn" title="Pause">II</button>
-      <button id="homeBtn" title="Home">&#8962;</button>
+    <!-- HOME -->
+    <div id="homeScreen" class="screen active">
+      <div class="title game-text">Paddle Quest</div>
+      <div class="subtitle game-text">Drag Puddle To Catch The Ball!</div>
+      <button id="playBtn" class="game-btn">PLAY</button>
+      <button id="gameModesBtn" class="game-btn">GAME MODES</button>
+      <button id="missionsBtn" class="game-btn">MISSIONS</button>
+      <button id="leaderboardBtn" class="game-btn">LEADERBOARDS</button>
     </div>
 
-    <button id="rightArrow" class="arrow-btn">&#8594;</button>
-  </div>
+    <!-- MISSIONS -->
+    <div id="missionsScreen" class="screen">
+      <div class="title game-text">MISSIONS</div>
+      <div id="missionsList"></div>
+    </div>
 
-  <!-- Pause screen overlay -->
-  <div id="pauseScreen" style="display:none;">
-    <div>Game Paused</div>
-    <div style="font-size:18px; margin-top: 12px;">Tap Anywhere To Continue</div>
-  </div>
+    <!-- LEADERBOARD placeholder -->
+    <div id="leaderboardScreen" class="screen">
+      <div class="title game-text">COMING SOON!</div>
+    </div>
 
-  <!-- Challenge result screen -->
-  <div id="challengeResultScreen">
-    <h2 id="challengeResultTitle"></h2>
-    <div id="challengeFinalScore" style="font-size: 24px; margin-top: 10px;"></div>
-    <button id="challengeResultBackBtn" class="yellow-btn">Back to Home</button>
-  </div>
+    <!-- GAME MODES -->
+    <div id="gameModesScreen" class="screen">
+      <div class="title game-text">GAME MODES</div>
 
-  <!-- Back arrow for menus -->
-  <div id="backArrow">&#8592;</div>
-
-  <!-- Home Screen -->
-  <div id="homeScreen" class="screen active">
-    <h1 style="font-size: 56px; text-shadow: 0 2px 3px black;">Paddle Quest</h1>
-    <div style="font-size: 20px; margin-bottom: 40px;">Drag Puddle To Catch The Ball!</div>
-    <button id="playBtn" class="yellow-btn">PLAY</button>
-    <button id="gameModesBtn" class="yellow-btn">GAME MODES</button>
-    <button id="missionsBtn">MISSIONS</button>
-    <button id="leaderboardBtn">LEADERBOARDS</button>
-  </div>
-
-  <!-- Missions Screen -->
-  <div id="missionsScreen" class="screen">
-    <h2>MISSIONS</h2>
-    <div id="missionsList"></div>
-  </div>
-
-  <!-- Leaderboard Screen -->
-  <div id="leaderboardScreen" class="screen">
-    <h2>LEADERBOARDS</h2>
-    <div style="margin-top:20px; font-size: 22px;">COMING SOON!</div>
-  </div>
-
-  <!-- Game Modes Screen -->
-  <div id="gameModesScreen" class="screen">
-    <h2>GAME MODES</h2>
-    <div style="display:flex; justify-content: space-around; flex-wrap: wrap; width: 100%; max-width: 600px; margin-top: 20px;">
-      <div class="game-mode-box" style="flex:1 1 250px;" data-mode="endless">
-        <div class="game-mode-title">Endless Mode</div>
-        <div class="game-mode-desc">Play until you get bored.</div>
-        <button class="game-mode-play-btn yellow-btn" data-mode="endless">PLAY</button>
+      <div class="mode-card">
+        <div class="mode-title game-text">Endless Mode</div>
+        <div class="mode-desc game-text">Play until you get bored.</div>
+        <button class="game-btn" id="endlessPlayBtn">PLAY</button>
       </div>
-      <div class="game-mode-box" style="flex:1 1 250px;" data-mode="challenge">
-        <div class="game-mode-title">60s Challenge</div>
-        <div class="game-mode-desc">Catch as many balls as you can in 60 seconds. You can't lose until time runs out.</div>
-        <button class="game-mode-play-btn yellow-btn" data-mode="challenge">PLAY (100 Puddle Points)</button>
+
+      <div class="mode-card">
+        <div class="mode-title game-text">60s Challenge</div>
+        <div class="mode-desc game-text">
+          Catch as many balls as you can in 60 seconds.<br />
+          You can't lose early, but you can quit anytime.<br />
+          Cost: 100 Puddle Points
+        </div>
+        <button class="game-btn" id="challengePlayBtn">PLAY</button>
+      </div>
+    </div>
+
+    <!-- Back Arrow -->
+    <button id="backArrow" title="Back">
+      <svg viewBox="0 0 24 24"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+    </button>
+
+    <!-- Pause overlay -->
+    <div id="pauseScreen">
+      <div class="pause-text game-text">Game Paused</div>
+      <div class="pause-subtext game-text">Tap Anywhere To Continue</div>
+    </div>
+
+    <!-- Challenge result -->
+    <div id="challengeResultScreen">
+      <h2 id="challengeResultTitle" class="game-text"></h2>
+      <p id="challengeFinalScore" class="game-text"></p>
+      <button id="challengeResultBackBtn">Back</button>
+    </div>
+
+    <!-- HUD (menus only) -->
+    <div id="puddlePointsContainer" class="game-text">
+      Puddle Points: <span id="puddlePointsDisplay">0</span>
+    </div>
+
+    <!-- Joystick Controls -->
+    <div id="controlButtons">
+      <div id="leftArrow" class="joy" title="Left">
+        <svg viewBox="0 0 24 24"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      </div>
+
+      <div id="midCluster">
+        <div id="pauseBtn" class="joy mid" title="Pause">
+          <svg viewBox="0 0 24 24">
+            <rect x="6" y="5" width="4" height="14"></rect>
+            <rect x="14" y="5" width="4" height="14"></rect>
+          </svg>
+        </div>
+        <div id="homeBtn" class="joy mid" title="Home">
+          <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        </div>
+      </div>
+
+      <div id="rightArrow" class="joy" title="Right">
+        <svg viewBox="0 0 24 24"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </div>
     </div>
   </div>
-</div>
 
 <script>
 (() => {
+  const W=480,H=720;
+  const container = document.getElementById('gameContainer');
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
 
-  // Set canvas size to fill viewport
-  function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
+  /* ---------- Persistent ---------- */
+  let highScore = parseInt(localStorage.getItem('paddleQuestHighScore')) || 0;
+  let puddlePoints = parseInt(localStorage.getItem('puddlePoints')) || 0;
 
-  const W = canvas.width;
-  const H = canvas.height;
+  /* ---------- UI Elements ---------- */
+  const homeScreen = document.getElementById('homeScreen');
+  const missionsScreen = document.getElementById('missionsScreen');
+  const leaderboardScreen = document.getElementById('leaderboardScreen');
+  const gameModesScreen = document.getElementById('gameModesScreen');
 
-  // UI elements
-  const puddlePointsContainer = document.getElementById('puddlePointsContainer');
-  const controlButtons = document.getElementById('controlButtons');
-  const leftArrow = document.getElementById('leftArrow');
-  const rightArrow = document.getElementById('rightArrow');
-  const pauseBtn = document.getElementById('pauseBtn');
-  const homeBtn = document.getElementById('homeBtn');
+  const playBtn = document.getElementById('playBtn');
+  const gameModesBtn = document.getElementById('gameModesBtn');
+  const missionsBtn = document.getElementById('missionsBtn');
+  const leaderboardBtn = document.getElementById('leaderboardBtn');
+
+  const endlessPlayBtn = document.getElementById('endlessPlayBtn');
+  const challengePlayBtn = document.getElementById('challengePlayBtn');
+
+  const backArrow = document.getElementById('backArrow');
 
   const pauseScreen = document.getElementById('pauseScreen');
   const challengeResultScreen = document.getElementById('challengeResultScreen');
@@ -340,561 +241,346 @@
   const challengeFinalScore = document.getElementById('challengeFinalScore');
   const challengeResultBackBtn = document.getElementById('challengeResultBackBtn');
 
-  const backArrow = document.getElementById('backArrow');
+  const puddlePointsContainer = document.getElementById('puddlePointsContainer');
+  const puddlePointsDisplay = document.getElementById('puddlePointsDisplay');
 
-  const homeScreen = document.getElementById('homeScreen');
-  const missionsScreen = document.getElementById('missionsScreen');
-  const leaderboardScreen = document.getElementById('leaderboardScreen');
-  const gameModesScreen = document.getElementById('gameModesScreen');
+  const controlButtons = document.getElementById('controlButtons');
+  const leftArrow = document.getElementById('leftArrow');
+  const rightArrow = document.getElementById('rightArrow');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const homeBtn = document.getElementById('homeBtn');
 
-  const playBtn = document.getElementById('playBtn');
-  const missionsBtn = document.getElementById('missionsBtn');
-  const leaderboardBtn = document.getElementById('leaderboardBtn');
-  const gameModesBtn = document.getElementById('gameModesBtn');
+  /* ---------- Missions ---------- */
   const missionsList = document.getElementById('missionsList');
-
-  // Game variables
-  let score = 0;
-  let highScore = parseInt(localStorage.getItem('paddleQuestHighScore')) || 0;
-  let puddlePoints = parseInt(localStorage.getItem('puddlePoints')) || 0;
-  let gamesPlayedCount = 0;
-  let currentGameMode = null; // 'endless' or 'challenge'
-
-  // Challenge mode variables
-  let challengeTime = 60;
-  let challengeScore = 0;
-  let challengeTimerId = null;
-
-  // Missions array
-  let missions = [
-    { id:1, desc: "Catch 10 balls", target: 10, completed: false },
-    { id:2, desc: "Catch 25 balls", target: 25, completed: false },
-    { id:3, desc: "Catch 50 balls", target: 50, completed: false },
-    { id:4, desc: "Play 3 games", target: 3, completed: false },
-    { id:5, desc: "Play 5 games", target: 5, completed: false }
+  const missions = [
+    {id:1, desc:"Catch 10 balls", target:10, completed:false},
+    {id:2, desc:"Catch 25 balls", target:25, completed:false},
+    {id:3, desc:"Catch 50 balls", target:50, completed:false},
+    {id:4, desc:"Play 3 games", target:3, completed:false},
+    {id:5, desc:"Play 5 games", target:5, completed:false},
   ];
+  let gamesPlayedCount = 0;
 
-  // Paddle and ball properties
-  const paddle = {
-    width: 120,
-    height: 20,
-    x: W / 2 - 60,
-    y: H - 140,
-    speed: 10
-  };
+  function updatePuddlePointsDisplay(){ puddlePointsDisplay.textContent = String(puddlePoints); }
+  function savePuddlePoints(){ localStorage.setItem('puddlePoints', String(puddlePoints)); }
+  function renderMissions(){
+    missionsList.innerHTML = '';
+    missions.forEach(m=>{
+      const d = document.createElement('div');
+      d.className = 'mission-item game-text' + (m.completed?' completed':'');
+      d.textContent = m.desc + (m.completed?' ✓':'');
+      missionsList.appendChild(d);
+    });
+  }
+  function updateMissionsOnStart(){
+    gamesPlayedCount++;
+    if(gamesPlayedCount>=3 && !missions[3].completed){ missions[3].completed=true; puddlePoints+=50; savePuddlePoints(); updatePuddlePointsDisplay(); }
+    if(gamesPlayedCount>=5 && !missions[4].completed){ missions[4].completed=true; puddlePoints+=50; savePuddlePoints(); updatePuddlePointsDisplay(); }
+    renderMissions();
+  }
+  function updateMissionsOnCatch(total){
+    [1,2,3].forEach(idx=>{
+      const m = missions[idx-1];
+      if(!m.completed && total>=m.target){ m.completed=true; puddlePoints+=50; savePuddlePoints(); updatePuddlePointsDisplay(); }
+    });
+    renderMissions();
+  }
 
-  const ball = {
-    x: W / 2,
-    y: 100,
-    size: 15,
-    speedX: 5,
-    speedY: 5
-  };
+  /* ---------- Gameplay ---------- */
+  const paddle = { width:120, height:20, x:W/2-60, y:H-118, speed:9 };
+  const ball   = { x:W/2, y:120, r:14, vx:5, vy:5 };
+  let MAX_BALL_SPEED = 10;
+  const CHALLENGE_BALL_SPEED = 6;
 
-  // Input flags
-  let leftPressed = false;
-  let rightPressed = false;
-  let gameRunning = false;
-  let isPaused = false;
+  let score=0, challengeScore=0, challengeTime=60;
+  let currentMode=null; // 'endless' | 'challenge'
+  let gameRunning=false, isPaused=false;
 
-  // Particle system
-  let particles = [];
+  let rafId = null; // to prevent loop stacking
 
-  // Text drawing function with outline and shadow
-  function drawText(text, x, y, size=28, align='left') {
-    ctx.font = `${size}px 'Lilita One'`;
+  // parallax stars
+  const stars=[];
+  for(let i=0;i<90;i++){
+    stars.push({x:Math.random()*W, y:Math.random()*H, s:Math.random()*2+1, v:Math.random()*0.6+0.3});
+  }
+
+  // particles
+  const particles=[];
+  class Particle{
+    constructor(x,y){
+      this.x=x; this.y=y;
+      this.vx=(Math.random()-0.5)*3.2;
+      this.vy=(Math.random()-0.5)*3.2;
+      this.life=28+Math.random()*10;
+      this.r=1.5+Math.random()*2.5;
+    }
+    update(){ this.x+=this.vx; this.y+=this.vy; this.vy+=0.02; this.life--; this.r*=0.98; }
+    draw(){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(this.x,this.y,Math.max(0,this.r),0,Math.PI*2); ctx.fill(); }
+  }
+  function spawnSparks(x,y,n=10){ for(let i=0;i<n;i++) particles.push(new Particle(x,y)); }
+
+  function drawText(text,x,y,size=28,align='left'){
+    ctx.save();
+    ctx.font = `${size}px 'Lilita One', cursive`;
     ctx.textAlign = align;
-    ctx.fillStyle = 'white';
-    ctx.shadowColor = 'black';
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#000';
     ctx.shadowBlur = 1;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 2;
     ctx.lineWidth = 6;
-    ctx.strokeStyle = 'black';
-    ctx.strokeText(text, x, y);
-    ctx.fillText(text, x, y);
+    ctx.strokeStyle = '#000';
+    ctx.strokeText(text,x,y);
+    ctx.fillText(text,x,y);
+    ctx.restore();
   }
 
-  // Particle class for collision sparks
-  class Particle {
-    constructor(x,y) {
-      this.x = x;
-      this.y = y;
-      this.size = Math.random() * 3 + 2;
-      this.speedX = (Math.random() - 0.5) * 3;
-      this.speedY = (Math.random() - 0.5) * 3;
-      this.life = 30;
-    }
-    update() {
-      this.x += this.speedX;
-      this.y += this.speedY;
-      this.life--;
-      if(this.life < 0) this.size = 0;
-    }
-    draw() {
-      ctx.fillStyle = 'white';
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-      ctx.fill();
+  function drawStars(){
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+    for(const st of stars){
+      st.y += st.v; if(st.y>H) st.y=0;
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(st.x,st.y,st.s,0,Math.PI*2); ctx.fill();
     }
   }
 
-  // Animated star background for parallax
-  let stars = [];
-  for(let i=0; i<80; i++) {
-    stars.push({
-      x: Math.random()*W,
-      y: Math.random()*H,
-      size: Math.random()*2+1,
-      speed: Math.random()*0.5 + 0.3
-    });
-  }
-
-  // Functions to show/hide control buttons and puddle points
-  function showGameplayUI() {
-    controlButtons.classList.add('active');
-    puddlePointsContainer.style.display = 'none';
-  }
-  function hideGameplayUI() {
-    controlButtons.classList.remove('active');
-    puddlePointsContainer.style.display = 'block';
-  }
-
-  // Show a screen and hide others
-  function showScreen(screen) {
-    [homeScreen, missionsScreen, leaderboardScreen, gameModesScreen].forEach(s => {
-      if (s === screen) s.classList.add('active');
-      else s.classList.remove('active');
-    });
-  }
-
-  // Draw stars background with parallax
-  function drawStars() {
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0,0,W,H);
-    stars.forEach(star => {
-      ctx.fillStyle = 'white';
-      ctx.beginPath();
-      ctx.arc(star.x, star.y, star.size, 0, Math.PI*2);
-      ctx.fill();
-      star.x -= star.speed;
-      if(star.x < 0) star.x = W;
-    });
-  }
-
-  // Draw paddle
-  function drawPaddle() {
-    ctx.fillStyle = 'white';
-    ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
-  }
-
-  // Draw ball
-  function drawBall() {
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ball.size, 0, Math.PI*2);
-    ctx.fill();
-  }
-
-  // Spawn particles for collision effect
-  function spawnParticles(x,y) {
-    for(let i=0; i<8; i++) {
-      particles.push(new Particle(x,y));
+  function resetBallForMode(){
+    if(currentMode==='challenge'){
+      ball.vx = CHALLENGE_BALL_SPEED * (Math.random()<0.5?-1:1);
+      ball.vy = CHALLENGE_BALL_SPEED;
+    }else{
+      ball.vx = 5 * (Math.random()<0.5?-1:1);
+      ball.vy = 5;
     }
   }
 
-  // Increase ball speed gradually
-  function increaseBallSpeed() {
-    if(Math.abs(ball.speedX) < 15) {
-      ball.speedX *= 1.05;
-      ball.speedY *= 1.05;
-    }
+  function resetGameCommon(){
+    // cancel any previous loop to avoid stacking speeds
+    if(rafId!==null){ cancelAnimationFrame(rafId); rafId=null; }
+
+    score=0; challengeScore=0;
+    paddle.x = W/2 - paddle.width/2; paddle.y = H - 118;
+    ball.x=W/2; ball.y=120; resetBallForMode();
+    isPaused=false; gameRunning=true;
   }
 
-  // Update missions progress
-  function updateMissions(currentScore) {
-    [0,1,2].forEach(i => {
-      if(!missions[i].completed && currentScore >= missions[i].target) {
-        missions[i].completed = true;
-        puddlePoints += 50;
-        savePuddlePoints();
-        updatePuddlePointsDisplay();
-      }
-    });
-    if(!missions[3].completed && gamesPlayedCount >= missions[3].target) {
-      missions[3].completed = true;
-      puddlePoints += 50;
-      saveP
-      PaddlePoints();
-      updatePuddlePointsDisplay();
-    }
-    if(!missions[4].completed && gamesPlayedCount >= missions[4].target) {
-      missions[4].completed = true;
-      puddlePoints += 50;
-      savePuddlePoints();
-      updatePuddlePointsDisplay();
-    }
+  /* ---------- Modes ---------- */
+  let challengeTimerId=null;
+
+  function startEndless(){
+    currentMode='endless'; resetGameCommon(); updateMissionsOnStart();
+    showGameplayUI(true); loop();
+  }
+  function startChallenge(){
+    if(puddlePoints<100){ alert('Not enough Puddle Points! Complete missions to earn more.'); return; }
+    puddlePoints -= 100; savePuddlePoints(); updatePuddlePointsDisplay();
+
+    currentMode='challenge'; challengeTime=60; resetGameCommon(); updateMissionsOnStart();
+    if(challengeTimerId) clearInterval(challengeTimerId);
+    challengeTimerId = setInterval(()=>{
+      if(isPaused) return;
+      challengeTime--; if(challengeTime<=0){ clearInterval(challengeTimerId); endChallenge(true); }
+    },1000);
+    showGameplayUI(true); loop();
   }
 
-  // Render missions list
-  function renderMissions() {
-    missionsList.innerHTML = '';
-    missions.forEach(mission => {
-      const div = document.createElement('div');
-      div.className = 'mission-item';
-      if(mission.completed) div.classList.add('completed');
-      div.textContent = mission.desc + (mission.completed ? ' ✓' : '');
-      missionsList.appendChild(div);
-    });
-  }
-
-  // Save puddle points in localStorage
-  function savePuddlePoints() {
-    localStorage.setItem('puddlePoints', puddlePoints);
-  }
-
-  // Update puddle points UI
-  function updatePuddlePointsDisplay() {
-    puddlePointsContainer.textContent = `Puddle Points: ${puddlePoints}`;
-  }
-
-  // Reset game state
-  function resetGame() {
-    score = 0;
-    ball.x = W / 2;
-    ball.y = 100;
-    ball.speedX = 5 * (Math.random() < 0.5 ? 1 : -1);
-    ball.speedY = 5;
-    paddle.x = W / 2 - paddle.width / 2;
-    leftPressed = false;
-    rightPressed = false;
-    gameRunning = true;
-    isPaused = false;
-    particles = [];
-  }
-
-  // Reset challenge specific state
-  function resetChallenge() {
-    challengeTime = 60;
-    challengeScore = 0;
-    if(challengeTimerId) {
-      clearInterval(challengeTimerId);
-      challengeTimerId = null;
-    }
-  }
-
-  // Show back arrow on missions, leaderboard, game modes
-  function showBackArrow(show) {
-    backArrow.style.display = show ? 'block' : 'none';
-  }
-
-  // Go back function
-  function goBack() {
-    if(currentGameModeScreen) {
-      currentGameModeScreen = null;
-      showScreen(homeScreen);
-      showBackArrow(false);
-      hideGameplayUI();
-      updatePuddlePointsDisplay();
-    }
-  }
-
-  backArrow.addEventListener('click', () => {
-    goBack();
-  });
-
-  // Start challenge timer
-  function startChallengeTimer() {
-    challengeTimerId = setInterval(() => {
-      if(!isPaused) {
-        challengeTime--;
-        if(challengeTime <= 0) {
-          endChallenge(true);
-        }
-      }
-    }, 1000);
-  }
-
-  // End challenge - success or fail
-  function endChallenge(success) {
-    gameRunning = false;
-    if(challengeTimerId) {
-      clearInterval(challengeTimerId);
-      challengeTimerId = null;
-    }
-    challengeResultTitle.textContent = success ? "Challenge Completed!" : "Challenge Failed!";
-    challengeFinalScore.textContent = `Final Score: ${challengeScore}`;
-    challengeResultScreen.style.display = 'flex';
-    hideGameplayUI();
-  }
-
-  challengeResultBackBtn.addEventListener('click', () => {
-    challengeResultScreen.style.display = 'none';
+  function endGame(){
+    gameRunning=false;
+    if(rafId!==null){ cancelAnimationFrame(rafId); rafId=null; }
+    if(score>highScore){ highScore=score; localStorage.setItem('paddleQuestHighScore', String(highScore)); }
+    alert(`Game Over! Your score: ${score}`);
     goHome();
-  });
-
-  // Go home (main menu)
-  function goHome() {
-    gameRunning = false;
-    isPaused = false;
-    currentGameMode = null;
-    hideGameplayUI();
-    showScreen(homeScreen);
-    showBackArrow(false);
-    updatePuddlePointsDisplay();
   }
 
-  // Show a screen from button clicks (missions, leaderboard, game modes)
-  missionsBtn.addEventListener('click', () => {
-    showScreen(missionsScreen);
-    showBackArrow(true);
-    hideGameplayUI();
-    renderMissions();
-  });
-
-  leaderboardBtn.addEventListener('click', () => {
-    showScreen(leaderboardScreen);
-    showBackArrow(true);
-    hideGameplayUI();
-  });
-
-  gameModesBtn.addEventListener('click', () => {
-    showScreen(gameModesScreen);
-    showBackArrow(true);
-    hideGameplayUI();
-  });
-
-  // Play button on home screen - starts endless mode
-  playBtn.addEventListener('click', () => {
-    currentGameMode = 'endless';
-    resetGame();
-    gamesPlayedCount++;
-    renderMissions();
-    showScreen(null);
-    updatePuddlePointsDisplay();
-    showGameplayUI();
-    gameLoop();
-  });
-
-  // Game mode play buttons
-  gameModesScreen.querySelectorAll('.game-mode-play-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const mode = btn.getAttribute('data-mode');
-      if(mode === 'endless') {
-        currentGameMode = 'endless';
-        resetGame();
-        gamesPlayedCount++;
-        renderMissions();
-        showScreen(null);
-        updatePuddlePointsDisplay();
-        showGameplayUI();
-        gameLoop();
-      } else if(mode === 'challenge') {
-        if(puddlePoints < 100) {
-          alert('Not enough Puddle Points! Complete missions to earn more.');
-          return;
-        }
-        puddlePoints -= 100;
-        savePuddlePoints();
-        updatePuddlePointsDisplay();
-        currentGameMode = 'challenge';
-        resetChallenge();
-        resetGame();
-        gamesPlayedCount++;
-        renderMissions();
-        showScreen(null);
-        updatePuddlePointsDisplay();
-        showGameplayUI();
-        startChallengeTimer();
-        gameLoop();
-      }
-    });
-  });
-
-  // Left and right arrow button touch controls
-  leftArrow.addEventListener('touchstart', e => {
-    e.preventDefault();
-    leftPressed = true;
-  });
-  leftArrow.addEventListener('touchend', e => {
-    e.preventDefault();
-    leftPressed = false;
-  });
-  rightArrow.addEventListener('touchstart', e => {
-    e.preventDefault();
-    rightPressed = true;
-  });
-  rightArrow.addEventListener('touchend', e => {
-    e.preventDefault();
-    rightPressed = false;
-  });
-
-  // Also support mouse events for desktop testing
-  leftArrow.addEventListener('mousedown', e => {
-    e.preventDefault();
-    leftPressed = true;
-  });
-  leftArrow.addEventListener('mouseup', e => {
-    e.preventDefault();
-    leftPressed = false;
-  });
-  rightArrow.addEventListener('mousedown', e => {
-    e.preventDefault();
-    rightPressed = true;
-  });
-  rightArrow.addEventListener('mouseup', e => {
-    e.preventDefault();
-    rightPressed = false;
-  });
-
-  // Pause and Home buttons
-  pauseBtn.addEventListener('click', () => {
-    if(!gameRunning) return;
-    isPaused = !isPaused;
-    pauseScreen.style.display = isPaused ? 'flex' : 'none';
-  });
-
-  pauseScreen.addEventListener('click', () => {
-    if(isPaused) {
-      isPaused = false;
-      pauseScreen.style.display = 'none';
+  function endChallenge(success){
+    gameRunning=false;
+    if(rafId!==null){ cancelAnimationFrame(rafId); rafId=null; }
+    if(challengeTimerId){ clearInterval(challengeTimerId); challengeTimerId=null; }
+    pauseScreen.style.display='none';
+    if(success){
+      challengeResultTitle.textContent='Challenge Completed!';
+      challengeFinalScore.textContent=`Your Score: ${challengeScore}`;
+      // Optional completion reward:
+      puddlePoints += 50; savePuddlePoints(); updatePuddlePointsDisplay();
+    }else{
+      challengeResultTitle.textContent='Challenge Failed';
+      challengeFinalScore.textContent='';
     }
-  });
-
-  homeBtn.addEventListener('click', () => {
-    if(gameRunning) {
-      goHome();
-    }
-  });
-
-  // Game loop
-  function gameLoop() {
-    if(!gameRunning || isPaused) {
-      requestAnimationFrame(gameLoop);
-      return;
-    }
-
-    update();
-    draw();
-
-    requestAnimationFrame(gameLoop);
+    challengeResultScreen.style.display='flex';
   }
 
-  // Update game state
-  function update() {
-    // Move paddle
-    if(leftPressed) {
-      paddle.x -= paddle.speed;
-      if(paddle.x < 0) paddle.x = 0;
-    }
-    if(rightPressed) {
-      paddle.x += paddle.speed;
-      if(paddle.x + paddle.width > W) paddle.x = W - paddle.width;
-    }
+  /* ---------- Loop ---------- */
+  function update(){
+    if(!gameRunning || isPaused) return;
 
-    // Move ball
-    ball.x += ball.speedX;
-    ball.y += ball.speedY;
+    // input
+    if(leftHeld)  paddle.x -= paddle.speed;
+    if(rightHeld) paddle.x += paddle.speed;
+    if(paddle.x<0) paddle.x=0;
+    if(paddle.x+paddle.width>W) paddle.x=W-paddle.width;
 
-    // Ball collision with walls (left and right)
-    if(ball.x - ball.size < 0) {
-      ball.x = ball.size;
-      ball.speedX = -ball.speedX;
-      spawnParticles(ball.x, ball.y);
-    } else if(ball.x + ball.size > W) {
-      ball.x = W - ball.size;
-      ball.speedX = -ball.speedX;
-      spawnParticles(ball.x, ball.y);
-    }
+    // ball
+    ball.x += ball.vx; ball.y += ball.vy;
 
-    // Ball collision with top
-    if(ball.y - ball.size < 0) {
-      ball.y = ball.size;
-      ball.speedY = -ball.speedY;
-      spawnParticles(ball.x, ball.y);
-    }
+    // walls
+    if(ball.x+ball.r>W){ ball.x=W-ball.r; ball.vx*=-1; spawnSparks(ball.x,ball.y,8); }
+    if(ball.x-ball.r<0){ ball.x=ball.r;   ball.vx*=-1; spawnSparks(ball.x,ball.y,8); }
+    if(ball.y-ball.r<0){ ball.y=ball.r;   ball.vy*=-1; spawnSparks(ball.x,ball.y,8); }
 
-    // Ball collision with paddle
-    if(ball.y + ball.size >= paddle.y &&
-      ball.x > paddle.x && ball.x < paddle.x + paddle.width &&
-      ball.speedY > 0) {
-      ball.y = paddle.y - ball.size;
-      ball.speedY = -ball.speedY;
+    // paddle
+    if(ball.y+ball.r>=paddle.y && ball.x>paddle.x && ball.x<paddle.x+paddle.width && ball.vy>0){
+      ball.y = paddle.y - ball.r;
+      ball.vy *= -1;
+      spawnSparks(ball.x, ball.y, 12);
 
-      // Add spin effect based on where it hits paddle
-      let hitPos = (ball.x - paddle.x) / paddle.width - 0.5; // -0.5 to 0.5
-      ball.speedX += hitPos * 4;
-
-      spawnParticles(ball.x, ball.y);
-
-      // Increase score
-      score++;
-      if(currentGameMode === 'challenge') {
+      // score + speed control
+      if(currentMode==='challenge'){
         challengeScore++;
+      }else{
+        score++;
+        if(Math.abs(ball.vx)<MAX_BALL_SPEED){ ball.vx*=1.05; ball.vy*=1.05; }
       }
-      if(score > highScore) {
-        highScore = score;
-        localStorage.setItem('paddleQuestHighScore', highScore);
-      }
-
-      increaseBallSpeed();
-
-      updateMissions(score);
+      updateMissionsOnCatch(score);
     }
 
-    // Ball fall below paddle (only lose in endless mode)
-    if(ball.y - ball.size > H) {
-      if(currentGameMode === 'endless') {
-        // Game over
-        gameRunning = false;
-        alert(`Game Over! Your score: ${score}`);
-        goHome();
-      } else if(currentGameMode === 'challenge') {
-        // In challenge mode, you can't lose until timer ends, so just reset ball position and speed
-        ball.x = W / 2;
-        ball.y = 100;
-        ball.speedX = 5 * (Math.random() < 0.5 ? 1 : -1);
-        ball.speedY = 5;
+    // below bottom
+    if(ball.y - ball.r > H){
+      if(currentMode==='challenge'){
+        // bounce back (can't lose early)
+        ball.y = H - 160; ball.vy = -Math.abs(ball.vy);
+      }else{
+        endGame();
       }
     }
 
-    // Update particles
-    particles.forEach((p, i) => {
-      p.update();
-      if(p.size <= 0) {
-        particles.splice(i,1);
-      }
-    });
+    // particles
+    for(let i=particles.length-1;i>=0;i--){
+      particles[i].update();
+      if(particles[i].life<=0 || particles[i].r<=0.2){ particles.splice(i,1); }
+    }
   }
 
-  // Draw everything
-  function draw() {
-    // Draw background stars
+  function draw(){
     drawStars();
 
-    // Draw paddle and ball
-    drawPaddle();
-    drawBall();
+    // paddle
+    ctx.fillStyle='#F5C518';
+    ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
 
-    // Draw particles
-    particles.forEach(p => p.draw());
+    // ball
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
 
-    // Draw scores
-    drawText(`Score: ${score}`, 10, 40, 28, 'left');
-    drawText(`High Score: ${highScore}`, W - 10, 40, 28, 'right');
+    // particles
+    for(const p of particles) p.draw();
 
-    // Draw challenge timer if challenge mode
-    if(currentGameMode === 'challenge') {
-      drawText(`Time: ${challengeTime}s`, W/2, 40, 28, 'center');
+    // HUD
+    drawText(`High Score: ${highScore}`, W-10, 36, 26, 'right');
+    if(currentMode==='endless'){
+      drawText(`Score: ${score}`, 10, 36, 26, 'left');
+    }else if(currentMode==='challenge'){
+      drawText(`Time: ${challengeTime}s`, W/2, 36, 26, 'center');
+      drawText(`Score: ${challengeScore}`, W/2, 68, 22, 'center');
     }
   }
 
-  // Initialize
-  updatePuddlePointsDisplay();
-  renderMissions();
-  hideGameplayUI();
-  showScreen(homeScreen);
-  showBackArrow(false);
+  function loop(){
+    if(!gameRunning) return;
+    ctx.clearRect(0,0,W,H);
+    update(); draw();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  /* ---------- Navigation / Screens ---------- */
+  function showOnly(screen){
+    [homeScreen, missionsScreen, leaderboardScreen, gameModesScreen].forEach(s=>{
+      s.style.display='none'; s.classList.remove('active');
+    });
+    if(screen){
+      screen.style.display='flex'; screen.classList.add('active');
+      container.classList.add('controls-hidden');
+      backArrow.style.display = (screen===homeScreen) ? 'none' : 'block';
+      puddlePointsContainer.style.display = 'block'; // menus: show currency
+    }else{
+      // gameplay
+      container.classList.remove('controls-hidden');
+      backArrow.style.display='none';
+      puddlePointsContainer.style.display = 'none'; // hide currency during gameplay
+    }
+    pauseScreen.style.display='none';
+    challengeResultScreen.style.display='none';
+  }
+  function showGameplayUI(isGame){
+    if(isGame){
+      showOnly(null);
+    }else{
+      showOnly(homeScreen);
+    }
+  }
+  function goHome(){
+    currentMode=null;
+    if(rafId!==null){ cancelAnimationFrame(rafId); rafId=null; }
+    showOnly(homeScreen);
+  }
+
+  /* ---------- Input (hold to move) ---------- */
+  let leftHeld=false, rightHeld=false;
+  function bindHold(btn, on, off){
+    const start = e=>{ e.preventDefault(); on(); };
+    const end   = e=>{ e.preventDefault(); off(); };
+    btn.addEventListener('touchstart', start, {passive:false});
+    btn.addEventListener('touchend',   end,   {passive:false});
+    btn.addEventListener('touchcancel',end,   {passive:false});
+    btn.addEventListener('mousedown',  start);
+    btn.addEventListener('mouseup',    end);
+    btn.addEventListener('mouseleave', end);
+  }
+  bindHold(leftArrow, ()=>leftHeld=true,  ()=>leftHeld=false);
+  bindHold(rightArrow,()=>rightHeld=true, ()=>rightHeld=false);
+
+  pauseBtn.addEventListener('click', ()=>{
+    if(!gameRunning) return;
+    if(isPaused){ isPaused=false; pauseScreen.style.display='none'; loop(); }
+    else{ isPaused=true; pauseScreen.style.display='flex'; }
+  });
+  pauseScreen.addEventListener('click', ()=>{
+    if(isPaused){ isPaused=false; pauseScreen.style.display='none'; loop(); }
+  });
+
+  homeBtn.addEventListener('click', ()=>{
+    if(currentMode==='challenge' && gameRunning){ endChallenge(false); }
+    else{ goHome(); }
+  });
+
+  // Top buttons
+  playBtn.addEventListener('click', ()=> startEndless());
+  gameModesBtn.addEventListener('click', ()=> showOnly(gameModesScreen));
+  missionsBtn.addEventListener('click', ()=>{ showOnly(missionsScreen); renderMissions(); });
+  leaderboardBtn.addEventListener('click', ()=> showOnly(leaderboardScreen));
+
+  endlessPlayBtn.addEventListener('click', ()=> startEndless());
+  challengePlayBtn.addEventListener('click', ()=> startChallenge());
+
+  backArrow.addEventListener('click', ()=> showOnly(homeScreen));
+  challengeResultBackBtn.addEventListener('click', ()=>{
+    challengeResultScreen.style.display='none'; goHome();
+  });
+
+  /* ---------- Init ---------- */
+  function init(){
+    updatePuddlePointsDisplay();
+    renderMissions();
+    showOnly(homeScreen);
+
+    // Keep controls safely above bottom bars
+    controlButtons.style.bottom =
+      getComputedStyle(document.documentElement).getPropertyValue('--bottom-safe') || '28px';
+
+    // Prevent scroll/drag side effects on touch
+    ['leftArrow','rightArrow','pauseBtn','homeBtn'].forEach(id=>{
+      document.getElementById(id).addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
+    });
+  }
+  init();
 
 })();
 </script>
