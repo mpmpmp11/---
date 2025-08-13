@@ -2,117 +2,182 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<title>PADDLE QUEST</title>
-<link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Paddle Quest — Pixel Edition</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Press+Start+2P&display=swap" rel="stylesheet">
+
 <style>
-  :root{ --bottom-safe: 28px; }
+  :root{
+    --bottom-safe: 28px;
+    --accent: #F5C518;
+    --accent-dark: #b38f00;
+    --menu-font: 'Lilita One', cursive;
+    --hud-font: 'Press Start 2P', monospace;
+    --ui-bg: rgba(0,0,0,0.45);
+  }
 
   html,body{
     margin:0; height:100%; background:#000; overflow:hidden;
-    font-family:'Lilita One', cursive;
-    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+    font-family: var(--menu-font);
+    -webkit-user-select:none; user-select:none;
+    -webkit-touch-callout:none;
+    -webkit-font-smoothing: antialiased;
+    color: #fff;
   }
 
-  /* Fixed-size game stage for perfect fit */
+  /* Center stage fixed size (fits most phones, consistent) */
   #gameContainer{
-    position:relative; width:480px; height:720px; margin:0 auto; background:#000;
+    position:relative;
+    width:480px;
+    height:720px;
+    margin:0 auto;
+    background:#000;
     touch-action:none;
+    -webkit-user-select:none;
+    user-select: none;
   }
+
+  /* Visible canvas (upscaled) */
   #gameCanvas{
-    position:absolute; inset:0; width:480px; height:720px; display:block;
-    background:#000; image-rendering:pixelated;
+    position:absolute;
+    inset:0;
+    width:480px;
+    height:720px;
+    display:block;
+    image-rendering: pixelated;
+    background: #000;
   }
 
-  /* Universal text look: white + black outline + shadow (as close to your spec) */
-  .game-text{
-    color:#fff;
+  /* Menu text style: Lilita One, white with black outline & shadow */
+  .menu-title{
+    font-family: var(--menu-font);
+    color: #fff;
+    -webkit-text-stroke: 2px #000; /* outline */
     text-shadow: 0 2px 1px rgba(0,0,0,1);
-    -webkit-text-stroke:1px #000;
+    user-select: none;
+    margin: 0;
+  }
+  .menu-sub{
+    font-family: var(--menu-font);
+    color:#fff;
+    -webkit-text-stroke: 1px #000;
+    text-shadow: 0 2px 1px rgba(0,0,0,1);
+    margin: 6px 0 20px 0;
   }
 
+  /* Screen containers */
   .screen{
-    position:absolute; inset:0; display:none; flex-direction:column; align-items:center;
-    padding:40px 20px 20px; box-sizing:border-box; background:#000;
+    position:absolute;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding:40px 18px 20px;
+    box-sizing:border-box;
+    pointer-events: auto;
   }
   .screen.active{ display:flex; }
-  .title{ font-size:60px; margin:6px 0 6px; }
-  .subtitle{ font-size:22px; margin:0 0 24px; }
 
+  /* Yellow big buttons */
   .game-btn{
-    width:360px; height:56px; margin:10px 0; border:none; border-radius:14px;
-    font-size:28px; color:#000; background:#F5C518; cursor:pointer;
-    box-shadow:0 3px 0 #b38f00, 0 6px 12px rgba(0,0,0,.35);
-    font-family:'Lilita One', cursive;
+    width:360px;
+    height:56px;
+    margin:10px 0;
+    border:none;
+    border-radius:14px;
+    font-size:28px;
+    color:#000;
+    background:var(--accent);
+    cursor:pointer;
+    font-family: var(--menu-font);
+    box-shadow: 0 3px 0 var(--accent-dark), 0 6px 12px rgba(0,0,0,0.35);
   }
-  .game-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #b38f00; }
+  .game-btn:active{ transform: translateY(2px); box-shadow:0 1px 0 var(--accent-dark); }
 
-  /* Back arrow */
+  /* Smaller button */
+  .game-btn.small{ width:260px; height:50px; font-size:20px; }
+
+  /* Back arrow top-left */
   #backArrow{
-    position:absolute; top:10px; left:10px; width:44px; height:44px;
-    border:none; background:transparent; display:none; z-index:9999; cursor:pointer;
+    position:absolute; top:10px; left:10px; width:44px; height:44px; background:transparent; border:none;
+    z-index:9999; display:none; cursor:pointer;
   }
-  #backArrow svg{ width:100%; height:100%; fill:#fff; filter:drop-shadow(0 2px 2px #000); }
+  #backArrow svg{ width:100%; height:100%; fill:#fff; filter: drop-shadow(0 2px 2px #000); }
 
-  /* Game Modes cards */
-  .mode-card{
-    width:420px; border:3px solid #F5C518; border-radius:18px; padding:18px; margin:10px 0 18px;
-  }
-  .mode-title{ font-size:32px; margin:0 0 6px; }
-  .mode-desc{ font-size:18px; opacity:.9; }
-
-  /* Missions list */
-  #missionsList{ width:100%; max-width:420px; max-height:420px; overflow-y:auto; padding-right:6px; }
-  .mission-item{ background:#1f1f1f; color:#fff; padding:12px 16px; margin:8px 0; border-radius:10px; font-size:20px; }
-  .mission-item.completed{ background:#224f22; color:#9cff9c; text-decoration:line-through; }
-  #missionsList::-webkit-scrollbar{ width:8px; }
-  #missionsList::-webkit-scrollbar-thumb{ background:#444; border-radius:4px; }
+  /* Missions */
+  #missionsList{ width:100%; max-width:420px; max-height:420px; overflow-y:auto; padding-right:8px; margin-top:8px; }
+  .mission-item{ background:#1e1e1e; color:#fff; padding:12px 14px; margin:8px 0; border-radius:10px; font-size:18px; }
+  .mission-item.completed{ background:#234d23; color:#bfffbf; text-decoration:line-through; }
 
   /* Pause overlay */
   #pauseScreen{
-    position:absolute; inset:0; background:rgba(0,0,0,.86); display:none;
-    align-items:center; justify-content:center; flex-direction:column; z-index:5000;
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column;
+    background: rgba(0,0,0,0.86); z-index:7000;
   }
-  #pauseScreen .pause-text{ font-size:44px; margin-bottom:10px; }
-  #pauseScreen .pause-subtext{ font-size:22px; }
+  .pause-text{ font-size:44px; margin-bottom:8px; }
+  .pause-sub{ font-size:20px; }
 
   /* Challenge result overlay */
   #challengeResultScreen{
-    position:absolute; inset:0; background:rgba(0,0,0,.92); display:none;
-    align-items:center; justify-content:center; flex-direction:column; padding:30px 20px; z-index:6000;
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column;
+    background: rgba(0,0,0,0.92); z-index:8000; padding:18px;
   }
-  #challengeResultScreen h2{ font-size:42px; margin:8px 0 16px; }
-  #challengeResultScreen p{ font-size:26px; margin:0 0 20px; }
-  #challengeResultScreen button{
-    font-size:24px; padding:10px 26px; border-radius:12px; border:none; background:#F5C518; color:#000;
-    cursor:pointer; font-family:'Lilita One', cursive;
-  }
+  #challengeResultScreen h2{ font-size:40px; margin:10px 0; }
+  #challengeResultScreen p{ font-size:22px; margin:6px 0 16px; }
 
-  /* HUD: Puddle Points (menus only) */
+  /* Puddle Points HUD (menus only) */
   #puddlePointsContainer{
-    position:absolute; top:10px; right:12px; font-size:20px; z-index:2000;
+    position:absolute; top:12px; right:12px; z-index:9000; font-size:18px; padding:8px 10px; border-radius:10px;
+    background: var(--ui-bg); -webkit-text-stroke: 0.6px #000;
   }
 
   /* Joystick-style bottom controls */
   #controlButtons{
-    position:absolute; left:0; right:0; bottom:var(--bottom-safe); height:128px;
-    display:flex; justify-content:space-between; align-items:center; padding:0 18px;
-    box-sizing:border-box; z-index:3000; pointer-events:none;
+    position:absolute;
+    left:0; right:0;
+    bottom: var(--bottom-safe);
+    height:120px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:0 18px;
+    box-sizing:border-box;
+    z-index:6000;
+    pointer-events:none; /* children will enable pointer-events */
   }
   .joy{
-    pointer-events:auto; -webkit-tap-highlight-color:transparent; user-select:none;
+    pointer-events:auto;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
     width:110px; height:110px; border-radius:55px;
-    background:rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.12);
     display:flex; align-items:center; justify-content:center;
-    box-shadow: inset 0 0 0 3px rgba(245,197,24,0.9), 0 6px 16px rgba(0,0,0,.35);
-    backdrop-filter: blur(2px);
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,0.14), 0 6px 12px rgba(0,0,0,0.45);
+    border: 3px solid var(--accent);
   }
-  .joy svg{ width:60px; height:60px; fill:#F5C518; pointer-events:none; }
+  .joy svg{ width:56px; height:56px; fill:var(--accent); pointer-events:none; }
+  #midCluster{ display:flex; flex-direction:row; gap:16px; align-items:center; justify-content:center; }
+  .mid{ width:98px; height:98px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
 
-  #midCluster{ display:flex; flex-direction:row; gap:18px; align-items:center; justify-content:center; }
-  .mid{ width:100px; height:100px; border-radius:50px; }
   .controls-hidden #controlButtons{ display:none; }
+
+  /* Style toggle pill */
+  #stylePill{ position:absolute; top:10px; left:50%; transform: translateX(-50%); z-index:9000; display:none;
+    padding:8px 12px; border-radius:999px; background:var(--ui-bg); border:2px solid var(--accent); font-size:14px; }
+  #stylePill button{ margin-left:10px; padding:6px 10px; border-radius:8px; border:none; background:var(--accent); color:#000; cursor:pointer; }
+
+  /* smaller scrollbars for missions */
+  #missionsList::-webkit-scrollbar{ width:8px; }
+  #missionsList::-webkit-scrollbar-thumb{ background:#444; border-radius:4px; }
+
+  /* Make buttons super readable on mobile */
+  @media (max-width: 420px){
+    .game-btn{ width: 320px; font-size: 24px; }
+  }
+
 </style>
 </head>
 <body>
@@ -121,43 +186,40 @@
 
     <!-- HOME -->
     <div id="homeScreen" class="screen active">
-      <div class="title game-text">Paddle Quest</div>
-      <div class="subtitle game-text">Drag Puddle To Catch The Ball!</div>
+      <h1 class="menu-title" style="font-size:64px; margin-top:12px;">Paddle Quest</h1>
+      <div class="menu-sub" style="font-size:20px; margin-bottom:26px;">Drag Puddle To Catch The Ball!</div>
       <button id="playBtn" class="game-btn">PLAY</button>
       <button id="gameModesBtn" class="game-btn">GAME MODES</button>
       <button id="missionsBtn" class="game-btn">MISSIONS</button>
       <button id="leaderboardBtn" class="game-btn">LEADERBOARDS</button>
+      <button id="styleBtn" class="game-btn small" style="margin-top:18px;">STYLE: CLASSIC</button>
     </div>
 
     <!-- MISSIONS -->
     <div id="missionsScreen" class="screen">
-      <div class="title game-text">MISSIONS</div>
+      <h1 class="menu-title" style="font-size:46px;">MISSIONS</h1>
       <div id="missionsList"></div>
     </div>
 
-    <!-- LEADERBOARD placeholder -->
+    <!-- LEADERBOARD -->
     <div id="leaderboardScreen" class="screen">
-      <div class="title game-text">COMING SOON!</div>
+      <h1 class="menu-title" style="font-size:46px;">COMING SOON!</h1>
     </div>
 
     <!-- GAME MODES -->
     <div id="gameModesScreen" class="screen">
-      <div class="title game-text">GAME MODES</div>
+      <h1 class="menu-title" style="font-size:46px;">GAME MODES</h1>
 
-      <div class="mode-card">
-        <div class="mode-title game-text">Endless Mode</div>
-        <div class="mode-desc game-text">Play until you get bored.</div>
-        <button class="game-btn" id="endlessPlayBtn">PLAY</button>
+      <div class="mode-card" style="width:420px; border:3px solid var(--accent); border-radius:18px; padding:16px; margin-top:18px; background:var(--ui-bg);">
+        <div style="font-size:30px; margin-bottom:6px; color:#fff; -webkit-text-stroke:1px #000;">Endless Mode</div>
+        <div style="font-size:16px; margin-bottom:10px;">Play until you get bored.</div>
+        <button id="endlessPlayBtn" class="game-btn">PLAY</button>
       </div>
 
-      <div class="mode-card">
-        <div class="mode-title game-text">60s Challenge</div>
-        <div class="mode-desc game-text">
-          Catch as many balls as you can in 60 seconds.<br />
-          You can't lose early, but you can quit anytime.<br />
-          Cost: 100 Puddle Points
-        </div>
-        <button class="game-btn" id="challengePlayBtn">PLAY</button>
+      <div class="mode-card" style="width:420px; border:3px solid var(--accent); border-radius:18px; padding:16px; margin-top:8px; background:var(--ui-bg);">
+        <div style="font-size:30px; margin-bottom:6px; color:#fff; -webkit-text-stroke:1px #000;">60s Challenge</div>
+        <div style="font-size:16px; margin-bottom:10px;">Catch as many balls as you can in 60 seconds. Cost: 100 Puddle Points</div>
+        <button id="challengePlayBtn" class="game-btn">PLAY</button>
       </div>
     </div>
 
@@ -169,20 +231,18 @@
     <!-- Pause overlay -->
     <div id="pauseScreen">
       <div class="pause-text game-text">Game Paused</div>
-      <div class="pause-subtext game-text">Tap Anywhere To Continue</div>
+      <div class="pause-sub game-text">Tap Anywhere To Continue</div>
     </div>
 
     <!-- Challenge result -->
     <div id="challengeResultScreen">
       <h2 id="challengeResultTitle" class="game-text"></h2>
       <p id="challengeFinalScore" class="game-text"></p>
-      <button id="challengeResultBackBtn">Back</button>
+      <button id="challengeResultBackBtn" class="game-btn small">Back</button>
     </div>
 
-    <!-- HUD (menus only) -->
-    <div id="puddlePointsContainer" class="game-text">
-      Puddle Points: <span id="puddlePointsDisplay">0</span>
-    </div>
+    <!-- Puddle Points HUD (menus only) -->
+    <div id="puddlePointsContainer" class="game-text">Puddle Points: <span id="puddlePointsDisplay">0</span></div>
 
     <!-- Joystick Controls -->
     <div id="controlButtons">
@@ -192,10 +252,7 @@
 
       <div id="midCluster">
         <div id="pauseBtn" class="joy mid" title="Pause">
-          <svg viewBox="0 0 24 24">
-            <rect x="6" y="5" width="4" height="14"></rect>
-            <rect x="14" y="5" width="4" height="14"></rect>
-          </svg>
+          <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
         </div>
         <div id="homeBtn" class="joy mid" title="Home">
           <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
@@ -206,51 +263,69 @@
         <svg viewBox="0 0 24 24"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
       </div>
     </div>
+
+    <!-- Style pill -- menus only -->
+    <div id="stylePill">Palette: <span id="paletteName">Classic</span> <button id="paletteToggle">Toggle</button></div>
   </div>
 
 <script>
+/* ===========================================================
+   Paddle Quest — Full single-file game
+   - 8-bit pixel renderer (backbuffer upscale)
+   - colorful pixel-parallax background (city/mountains)
+   - joystick controls above bottom safe area
+   - menu/game state safety: HOME cancels gameplay & clears canvas
+   - no RAF / timer stacking
+   - missions, puddle points, modes, challenge, etc.
+   =========================================================== */
+
 (() => {
-  const W=480,H=720;
+  const W = 480, H = 720;
+
+  // Visible canvas
+  const visibleCanvas = document.getElementById('gameCanvas');
+  const vctx = visibleCanvas.getContext('2d');
+  vctx.imageSmoothingEnabled = false;
+
+  // Backbuffer for pixel look
+  const SCALE = 2; // increase to 3 for chunkier pixels
+  const BW = Math.floor(W / SCALE), BH = Math.floor(H / SCALE);
+  const backCanvas = document.createElement('canvas');
+  backCanvas.width = BW; backCanvas.height = BH;
+  const ctx = backCanvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  // UI refs
   const container = document.getElementById('gameContainer');
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-
-  /* ---------- Persistent ---------- */
-  let highScore = parseInt(localStorage.getItem('paddleQuestHighScore')) || 0;
-  let puddlePoints = parseInt(localStorage.getItem('puddlePoints')) || 0;
-
-  /* ---------- UI Elements ---------- */
   const homeScreen = document.getElementById('homeScreen');
   const missionsScreen = document.getElementById('missionsScreen');
   const leaderboardScreen = document.getElementById('leaderboardScreen');
   const gameModesScreen = document.getElementById('gameModesScreen');
+  const backArrow = document.getElementById('backArrow');
+  const puddlePointsContainer = document.getElementById('puddlePointsContainer');
+  const puddlePointsDisplay = document.getElementById('puddlePointsDisplay');
+  const stylePill = document.getElementById('stylePill');
+  const paletteName = document.getElementById('paletteName');
 
   const playBtn = document.getElementById('playBtn');
   const gameModesBtn = document.getElementById('gameModesBtn');
   const missionsBtn = document.getElementById('missionsBtn');
   const leaderboardBtn = document.getElementById('leaderboardBtn');
-
   const endlessPlayBtn = document.getElementById('endlessPlayBtn');
   const challengePlayBtn = document.getElementById('challengePlayBtn');
-
-  const backArrow = document.getElementById('backArrow');
-
-  const pauseScreen = document.getElementById('pauseScreen');
   const challengeResultScreen = document.getElementById('challengeResultScreen');
-  const challengeResultTitle = document.getElementById('challengeResultTitle');
-  const challengeFinalScore = document.getElementById('challengeFinalScore');
   const challengeResultBackBtn = document.getElementById('challengeResultBackBtn');
 
-  const puddlePointsContainer = document.getElementById('puddlePointsContainer');
-  const puddlePointsDisplay = document.getElementById('puddlePointsDisplay');
-
-  const controlButtons = document.getElementById('controlButtons');
   const leftArrow = document.getElementById('leftArrow');
   const rightArrow = document.getElementById('rightArrow');
   const pauseBtn = document.getElementById('pauseBtn');
   const homeBtn = document.getElementById('homeBtn');
+  const controlButtons = document.getElementById('controlButtons');
 
-  /* ---------- Missions ---------- */
+  const styleBtn = document.getElementById('styleBtn');
+  const paletteToggle = document.getElementById('paletteToggle');
+
+  // Missions
   const missionsList = document.getElementById('missionsList');
   const missions = [
     {id:1, desc:"Catch 10 balls", target:10, completed:false},
@@ -259,328 +334,508 @@
     {id:4, desc:"Play 3 games", target:3, completed:false},
     {id:5, desc:"Play 5 games", target:5, completed:false},
   ];
-  let gamesPlayedCount = 0;
+
+  // Persistent storage
+  let highScore = parseInt(localStorage.getItem('paddleQuestHighScore')) || 0;
+  let puddlePoints = parseInt(localStorage.getItem('puddlePoints')) || 0;
 
   function updatePuddlePointsDisplay(){ puddlePointsDisplay.textContent = String(puddlePoints); }
   function savePuddlePoints(){ localStorage.setItem('puddlePoints', String(puddlePoints)); }
+
   function renderMissions(){
     missionsList.innerHTML = '';
     missions.forEach(m=>{
       const d = document.createElement('div');
       d.className = 'mission-item game-text' + (m.completed?' completed':'');
-      d.textContent = m.desc + (m.completed?' ✓':'');
+      d.textContent = m.desc + (m.completed ? ' ✓' : '');
       missionsList.appendChild(d);
     });
   }
-  function updateMissionsOnStart(){
+
+  /* ==================== Gameplay objects (pixel coords) ==================== */
+  const paddle = { width: Math.max(8, Math.round(120/SCALE)), height: Math.max(2, Math.round(20/SCALE)),
+                   x: Math.round(BW/2 - (120/SCALE)/2), y: Math.round(BH - 118/SCALE), speed: Math.max(4, Math.round(9/SCALE)) };
+  const ball   = { x: Math.round(BW/2), y: Math.round(120/SCALE), r: Math.max(2, Math.round(14/SCALE)), vx: 5/SCALE, vy: 5/SCALE };
+
+  const MAX_BALL_SPEED = 10 / SCALE;
+  const CHALLENGE_BALL_SPEED = 6 / SCALE;
+
+  let score = 0;
+  let challengeScore = 0;
+  let challengeTime = 60;
+  let currentMode = null; // 'endless' | 'challenge'
+  let gameRunning = false;
+  let isPaused = false;
+  let rafId = null;
+  let challengeTimerId = null;
+  let gamesPlayedCount = 0;
+
+  // Input state
+  let leftHeld=false, rightHeld=false;
+
+  /* ================= Color Palettes ================= */
+  let palette = localStorage.getItem('paddleQuestPalette') || 'classic';
+  function getColorsForPalette(name){
+    if(name === 'red'){
+      return { bg1:'#0b0010', bg2:'#2b0012', paddle:'#ff4d4d', ball:'#fff', accent:'#ff4d4d' };
+    }
+    // Classic
+    return { bg1:'#10203a', bg2:'#1a2b4a', paddle:'#F5C518', ball:'#ffffff', accent:'#F5C518' };
+  }
+  let colors = getColorsForPalette(palette);
+  function applyPaletteToCSS(name){
+    if(name==='red'){
+      document.documentElement.style.setProperty('--accent','#ff4d4d');
+      document.documentElement.style.setProperty('--accent-dark','#b30000');
+    } else {
+      document.documentElement.style.setProperty('--accent','#F5C518');
+      document.documentElement.style.setProperty('--accent-dark','#b38f00');
+    }
+    paletteName.textContent = (name==='red' ? 'Red Pixel' : 'Classic');
+  }
+  applyPaletteToCSS(palette);
+
+  /* ================= Pixel parallax colorful background (city/mountains) ================= */
+  // Layers are arrays of rects {x,w,h,color}
+  function makeLayer(tileCount, minW, maxW, minH, maxH, color){
+    const arr=[];
+    let x=0;
+    while(x < BW + 200){ // fill enough to scroll tileably
+      const w = Math.floor(minW + Math.random()*(maxW-minW));
+      const h = Math.floor(minH + Math.random()*(maxH-minH));
+      arr.push({x:x, w:w, h:h, color: color});
+      x += w + Math.floor(Math.random()*6);
+    }
+    return arr;
+  }
+  const layerFar = makeLayer(30, 8, 20, 6, 18, '#ffd9a6');   // small distant shapes
+  const layerMid = makeLayer(24, 12, 30, 20, 46, '#ffb3b3'); // mid
+  const layerNear= makeLayer(18, 18, 40, 40, 90, '#ffdf6b'); // near
+  let bgOffset = 0;
+
+  /* ================= Particles for hits ================= */
+  const particles = [];
+  class Particle {
+    constructor(x,y){
+      this.x = x|0; this.y = y|0;
+      this.vx = ((Math.random()<0.5?-1:1) * (Math.random()*2+0.2))|0;
+      this.vy = ((Math.random()<0.5?-1:1) * (Math.random()*2+0.2))|0;
+      this.life = 18 + (Math.random()*10)|0;
+      this.size = (Math.random()*2+1)|0; if(this.size<1) this.size=1;
+    }
+    update(){ this.x += this.vx; this.y += this.vy; this.life--; }
+    draw(){ ctx.fillStyle = '#fff'; ctx.fillRect(this.x|0, this.y|0, this.size, this.size); }
+  }
+  function spawnSparks(x,y,n=10){ for(let i=0;i<n;i++) particles.push(new Particle(x,y)); }
+
+  /* ================= Text helpers (pixel HUD) ================= */
+  function drawText8(text,x,y,size=8,align='left'){
+    ctx.save();
+    ctx.font = `${size}px 'Press Start 2P', monospace`;
+    ctx.textAlign = align;
+    ctx.fillStyle = '#000';
+    ctx.fillText(text, x+1, y+1);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  /* ================= Game state & screens handling ================= */
+  function showOnly(screenElem){
+    // hide all menu screens then show requested screen. If screenElem is null -> gameplay
+    const screens = [homeScreen, missionsScreen, leaderboardScreen, gameModesScreen];
+    screens.forEach(s => {
+      if(s === screenElem){
+        s.style.display = 'flex';
+        s.classList.add('active');
+      } else {
+        s.style.display = 'none';
+        s.classList.remove('active');
+      }
+    });
+
+    // menus: show puddle points & style pill; gameplay: hide them
+    if(screenElem){
+      puddlePointsContainer.style.display = 'block';
+      stylePill.style.display = 'block';
+      container.classList.add('controls-hidden'); // hide joystick controls visually when in menus
+      backArrow.style.display = (screenElem === homeScreen) ? 'none' : 'block';
+    } else {
+      puddlePointsContainer.style.display = 'none';
+      stylePill.style.display = 'none';
+      container.classList.remove('controls-hidden');
+      backArrow.style.display = 'none';
+    }
+
+    // crucial: when showing a menu, fully stop gameplay and clear canvases
+    if(screenElem) stopAndClearGameplay();
+  }
+
+  function stopAndClearGameplay(){
+    // Cancel RAF
+    if(rafId !== null){ cancelAnimationFrame(rafId); rafId = null; }
+    // Clear timers
+    if(challengeTimerId){ clearInterval(challengeTimerId); challengeTimerId = null; }
+    // Reset running flags
+    gameRunning = false; isPaused = false;
+    // Clear both backbuffer and visible canvas so no gameplay remains
+    ctx.clearRect(0,0,BW,BH);
+    vctx.clearRect(0,0,W,H);
+    // Hide overlays/panes that could remain
+    document.getElementById('pauseScreen').style.display = 'none';
+    challengeResultScreen.style.display = 'none';
+  }
+
+  /* ================= Gameplay start/stop with NO stacking ================= */
+  function resetBallForMode(){
+    if(currentMode === 'challenge'){
+      ball.vx = (Math.random() < 0.5 ? -1 : 1) * CHALLENGE_BALL_SPEED;
+      ball.vy = CHALLENGE_BALL_SPEED;
+    } else {
+      ball.vx = (Math.random() < 0.5 ? -1 : 1) * (5 / SCALE);
+      ball.vy = 5 / SCALE;
+    }
+  }
+
+  function resetAndStart(mode){
+    // stop any previous gameplay immediately (prevents stacking)
+    stopAndClearGameplay();
+
+    // set mode
+    currentMode = mode;
+    score = 0;
+    challengeScore = 0;
+    challengeTime = 60;
+
+    // reset positions
+    paddle.x = Math.round(BW/2 - paddle.width/2);
+    paddle.y = Math.round(BH - 118/SCALE);
+    ball.x = Math.round(BW/2);
+    ball.y = Math.round(120/SCALE);
+    resetBallForMode();
+
+    // mark flags
+    gameRunning = true; isPaused = false;
+
+    // show gameplay UI (hides menus)
+    showOnly(null);
+
+    // start challenge timer if needed
+    if(mode === 'challenge'){
+      if(challengeTimerId) clearInterval(challengeTimerId);
+      challengeTimerId = setInterval(()=>{
+        if(isPaused) return;
+        challengeTime--;
+        if(challengeTime <= 0){
+          clearInterval(challengeTimerId); challengeTimerId = null;
+          endChallenge(true);
+        }
+      }, 1000);
+    }
+
+    // increment games played for missions
     gamesPlayedCount++;
-    if(gamesPlayedCount>=3 && !missions[3].completed){ missions[3].completed=true; puddlePoints+=50; savePuddlePoints(); updatePuddlePointsDisplay(); }
-    if(gamesPlayedCount>=5 && !missions[4].completed){ missions[4].completed=true; puddlePoints+=50; savePuddlePoints(); updatePuddlePointsDisplay(); }
+    updateMissionsOnStart();
+
+    // start RAF loop
+    loop();
+  }
+
+  function startEndless(){ resetAndStart('endless'); }
+  function startChallenge(){
+    if(puddlePoints < 100){
+      alert('Not enough Puddle Points! Complete missions to earn more.');
+      return;
+    }
+    puddlePoints -= 100; savePuddlePoints(); updatePuddlePointsDisplay();
+    resetAndStart('challenge');
+  }
+
+  function endGame(){
+    stopAndClearGameplay();
+    if(score > highScore){ highScore = score; localStorage.setItem('paddleQuestHighScore', String(highScore)); }
+    alert(`Game Over! Your score: ${score}`);
+    showOnly(homeScreen);
+  }
+
+  function endChallenge(success){
+    stopAndClearGameplay();
+    if(success){
+      document.getElementById('challengeResultTitle').textContent = 'Challenge Completed!';
+      document.getElementById('challengeFinalScore').textContent = `Your Score: ${challengeScore}`;
+      // reward
+      puddlePoints += 50; savePuddlePoints(); updatePuddlePointsDisplay();
+    } else {
+      document.getElementById('challengeResultTitle').textContent = 'Challenge Failed';
+      document.getElementById('challengeFinalScore').textContent = '';
+    }
+    challengeResultScreen.style.display = 'flex';
+  }
+
+  /* ================= Missions updates ================= */
+  function updateMissionsOnStart(){
+    if(gamesPlayedCount >= 3 && !missions[3].completed){
+      missions[3].completed = true; puddlePoints += 50; savePuddlePoints(); updatePuddlePointsDisplay();
+    }
+    if(gamesPlayedCount >= 5 && !missions[4].completed){
+      missions[4].completed = true; puddlePoints += 50; savePuddlePoints(); updatePuddlePointsDisplay();
+    }
     renderMissions();
   }
   function updateMissionsOnCatch(total){
     [1,2,3].forEach(idx=>{
       const m = missions[idx-1];
-      if(!m.completed && total>=m.target){ m.completed=true; puddlePoints+=50; savePuddlePoints(); updatePuddlePointsDisplay(); }
+      if(!m.completed && total >= m.target){
+        m.completed = true; puddlePoints += 50; savePuddlePoints(); updatePuddlePointsDisplay();
+      }
     });
     renderMissions();
   }
 
-  /* ---------- Gameplay ---------- */
-  const paddle = { width:120, height:20, x:W/2-60, y:H-118, speed:9 };
-  const ball   = { x:W/2, y:120, r:14, vx:5, vy:5 };
-  let MAX_BALL_SPEED = 10;
-  const CHALLENGE_BALL_SPEED = 6;
-
-  let score=0, challengeScore=0, challengeTime=60;
-  let currentMode=null; // 'endless' | 'challenge'
-  let gameRunning=false, isPaused=false;
-
-  let rafId = null; // to prevent loop stacking
-
-  // parallax stars
-  const stars=[];
-  for(let i=0;i<90;i++){
-    stars.push({x:Math.random()*W, y:Math.random()*H, s:Math.random()*2+1, v:Math.random()*0.6+0.3});
-  }
-
-  // particles
-  const particles=[];
-  class Particle{
-    constructor(x,y){
-      this.x=x; this.y=y;
-      this.vx=(Math.random()-0.5)*3.2;
-      this.vy=(Math.random()-0.5)*3.2;
-      this.life=28+Math.random()*10;
-      this.r=1.5+Math.random()*2.5;
+  /* ================= Loop (update + draw) ================= */
+  function drawBackground(){
+    // colorful gradient base
+    for(let y=0;y<BH;y++){
+      const t = y / BH;
+      // blend between two warm colors for a colorful sky
+      const r = Math.round(20 + 140 * (1-t) + 30 * t);
+      const g = Math.round(10 + 40 * t);
+      const b = Math.round(40 + 80 * t);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0,y,BW,1);
     }
-    update(){ this.x+=this.vx; this.y+=this.vy; this.vy+=0.02; this.life--; this.r*=0.98; }
-    draw(){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(this.x,this.y,Math.max(0,this.r),0,Math.PI*2); ctx.fill(); }
-  }
-  function spawnSparks(x,y,n=10){ for(let i=0;i<n;i++) particles.push(new Particle(x,y)); }
-
-  function drawText(text,x,y,size=28,align='left'){
-    ctx.save();
-    ctx.font = `${size}px 'Lilita One', cursive`;
-    ctx.textAlign = align;
-    ctx.fillStyle = '#fff';
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 1;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = '#000';
-    ctx.strokeText(text,x,y);
-    ctx.fillText(text,x,y);
-    ctx.restore();
-  }
-
-  function drawStars(){
-    ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
-    for(const st of stars){
-      st.y += st.v; if(st.y>H) st.y=0;
-      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(st.x,st.y,st.s,0,Math.PI*2); ctx.fill();
+    // parallax layers scrolling
+    bgOffset += 0.3;
+    // draw far (slow)
+    ctx.fillStyle = '#b3e6ff';
+    for(const b of layerFar){
+      const x = Math.floor((b.x - bgOffset*0.2 + BW*10) % BW);
+      ctx.fillRect(x, BH - b.h - 12, b.w, b.h);
+      // tile copy
+      ctx.fillRect(x - BW, BH - b.h - 12, b.w, b.h);
+    }
+    // mid
+    ctx.fillStyle = '#ffb3d9';
+    for(const b of layerMid){
+      const x = Math.floor((b.x - bgOffset*0.5 + BW*10) % BW);
+      ctx.fillRect(x, BH - b.h - 8, b.w, b.h);
+      ctx.fillRect(x - BW, BH - b.h - 8, b.w, b.h);
+    }
+    // near
+    ctx.fillStyle = '#ffd98a';
+    for(const b of layerNear){
+      const x = Math.floor((b.x - bgOffset*1.0 + BW*10) % BW);
+      ctx.fillRect(x, BH - b.h, b.w, b.h);
+      ctx.fillRect(x - BW, BH - b.h, b.w, b.h);
     }
   }
 
-  function resetBallForMode(){
-    if(currentMode==='challenge'){
-      ball.vx = CHALLENGE_BALL_SPEED * (Math.random()<0.5?-1:1);
-      ball.vy = CHALLENGE_BALL_SPEED;
-    }else{
-      ball.vx = 5 * (Math.random()<0.5?-1:1);
-      ball.vy = 5;
-    }
-  }
-
-  function resetGameCommon(){
-    // cancel any previous loop to avoid stacking speeds
-    if(rafId!==null){ cancelAnimationFrame(rafId); rafId=null; }
-
-    score=0; challengeScore=0;
-    paddle.x = W/2 - paddle.width/2; paddle.y = H - 118;
-    ball.x=W/2; ball.y=120; resetBallForMode();
-    isPaused=false; gameRunning=true;
-  }
-
-  /* ---------- Modes ---------- */
-  let challengeTimerId=null;
-
-  function startEndless(){
-    currentMode='endless'; resetGameCommon(); updateMissionsOnStart();
-    showGameplayUI(true); loop();
-  }
-  function startChallenge(){
-    if(puddlePoints<100){ alert('Not enough Puddle Points! Complete missions to earn more.'); return; }
-    puddlePoints -= 100; savePuddlePoints(); updatePuddlePointsDisplay();
-
-    currentMode='challenge'; challengeTime=60; resetGameCommon(); updateMissionsOnStart();
-    if(challengeTimerId) clearInterval(challengeTimerId);
-    challengeTimerId = setInterval(()=>{
-      if(isPaused) return;
-      challengeTime--; if(challengeTime<=0){ clearInterval(challengeTimerId); endChallenge(true); }
-    },1000);
-    showGameplayUI(true); loop();
-  }
-
-  function endGame(){
-    gameRunning=false;
-    if(rafId!==null){ cancelAnimationFrame(rafId); rafId=null; }
-    if(score>highScore){ highScore=score; localStorage.setItem('paddleQuestHighScore', String(highScore)); }
-    alert(`Game Over! Your score: ${score}`);
-    goHome();
-  }
-
-  function endChallenge(success){
-    gameRunning=false;
-    if(rafId!==null){ cancelAnimationFrame(rafId); rafId=null; }
-    if(challengeTimerId){ clearInterval(challengeTimerId); challengeTimerId=null; }
-    pauseScreen.style.display='none';
-    if(success){
-      challengeResultTitle.textContent='Challenge Completed!';
-      challengeFinalScore.textContent=`Your Score: ${challengeScore}`;
-      // Optional completion reward:
-      puddlePoints += 50; savePuddlePoints(); updatePuddlePointsDisplay();
-    }else{
-      challengeResultTitle.textContent='Challenge Failed';
-      challengeFinalScore.textContent='';
-    }
-    challengeResultScreen.style.display='flex';
-  }
-
-  /* ---------- Loop ---------- */
   function update(){
     if(!gameRunning || isPaused) return;
 
-    // input
-    if(leftHeld)  paddle.x -= paddle.speed;
-    if(rightHeld) paddle.x += paddle.speed;
-    if(paddle.x<0) paddle.x=0;
-    if(paddle.x+paddle.width>W) paddle.x=W-paddle.width;
+    // input movement
+    if(leftHeld){ paddle.x -= paddle.speed; }
+    if(rightHeld){ paddle.x += paddle.speed; }
+    if(paddle.x < 0) paddle.x = 0;
+    if(paddle.x + paddle.width > BW) paddle.x = BW - paddle.width;
 
-    // ball
+    // ball move
     ball.x += ball.vx; ball.y += ball.vy;
 
     // walls
-    if(ball.x+ball.r>W){ ball.x=W-ball.r; ball.vx*=-1; spawnSparks(ball.x,ball.y,8); }
-    if(ball.x-ball.r<0){ ball.x=ball.r;   ball.vx*=-1; spawnSparks(ball.x,ball.y,8); }
-    if(ball.y-ball.r<0){ ball.y=ball.r;   ball.vy*=-1; spawnSparks(ball.x,ball.y,8); }
+    if(ball.x + ball.r > BW){ ball.x = BW - ball.r; ball.vx *= -1; spawnSparks(ball.x, ball.y, 8); }
+    if(ball.x - ball.r < 0){ ball.x = ball.r; ball.vx *= -1; spawnSparks(ball.x, ball.y, 8); }
+    if(ball.y - ball.r < 0){ ball.y = ball.r; ball.vy *= -1; spawnSparks(ball.x, ball.y, 8); }
 
-    // paddle
-    if(ball.y+ball.r>=paddle.y && ball.x>paddle.x && ball.x<paddle.x+paddle.width && ball.vy>0){
+    // paddle collision
+    if(ball.y + ball.r >= paddle.y &&
+       ball.x > paddle.x && ball.x < paddle.x + paddle.width &&
+       ball.vy > 0){
       ball.y = paddle.y - ball.r;
       ball.vy *= -1;
       spawnSparks(ball.x, ball.y, 12);
 
-      // score + speed control
-      if(currentMode==='challenge'){
+      if(currentMode === 'challenge'){
         challengeScore++;
-      }else{
+      } else {
         score++;
-        if(Math.abs(ball.vx)<MAX_BALL_SPEED){ ball.vx*=1.05; ball.vy*=1.05; }
+        if(Math.abs(ball.vx) < MAX_BALL_SPEED){ ball.vx *= 1.05; ball.vy *= 1.05; }
       }
       updateMissionsOnCatch(score);
     }
 
     // below bottom
-    if(ball.y - ball.r > H){
-      if(currentMode==='challenge'){
+    if(ball.y - ball.r > BH){
+      if(currentMode === 'challenge'){
         // bounce back (can't lose early)
-        ball.y = H - 160; ball.vy = -Math.abs(ball.vy);
-      }else{
+        ball.y = BH - Math.round(160/SCALE);
+        ball.vy = -Math.abs(ball.vy);
+      } else {
         endGame();
       }
     }
 
-    // particles
+    // particles lifetime
     for(let i=particles.length-1;i>=0;i--){
       particles[i].update();
-      if(particles[i].life<=0 || particles[i].r<=0.2){ particles.splice(i,1); }
+      if(particles[i].life <= 0) particles.splice(i,1);
     }
   }
 
   function draw(){
-    drawStars();
+    // background
+    drawBackground();
 
     // paddle
-    ctx.fillStyle='#F5C518';
-    ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+    ctx.fillStyle = colors.paddle;
+    ctx.fillRect(paddle.x|0, paddle.y|0, paddle.width|0, paddle.height|0);
 
-    // ball
-    ctx.fillStyle='#fff';
-    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+    // ball (pixel square)
+    ctx.fillStyle = colors.ball;
+    const bs = Math.max(2, (ball.r|0));
+    ctx.fillRect((ball.x - Math.floor(bs/2))|0, (ball.y - Math.floor(bs/2))|0, bs, bs);
 
     // particles
     for(const p of particles) p.draw();
 
-    // HUD
-    drawText(`High Score: ${highScore}`, W-10, 36, 26, 'right');
-    if(currentMode==='endless'){
-      drawText(`Score: ${score}`, 10, 36, 26, 'left');
-    }else if(currentMode==='challenge'){
-      drawText(`Time: ${challengeTime}s`, W/2, 36, 26, 'center');
-      drawText(`Score: ${challengeScore}`, W/2, 68, 22, 'center');
+    // HUD in pixel backbuffer
+    ctx.fillStyle = '#fff';
+    if(currentMode === 'endless'){
+      drawText8(`SCORE:${score}`, 4, 10, 8, 'left');
+    } else if(currentMode === 'challenge'){
+      drawText8(`TIME:${challengeTime}s`, BW>>1, 10, 8, 'center');
+      drawText8(`SCORE:${challengeScore}`, BW>>1, 20, 7, 'center');
     }
+    drawText8(`HIGH:${highScore}`, BW - 4, 10, 8, 'right');
+
+    // Blit upscaled to visible canvas
+    vctx.clearRect(0,0,W,H);
+    vctx.imageSmoothingEnabled = false;
+    vctx.drawImage(backCanvas, 0, 0, W, H);
   }
 
   function loop(){
     if(!gameRunning) return;
-    ctx.clearRect(0,0,W,H);
+    // clear backbuffer each frame
+    ctx.clearRect(0,0,BW,BH);
     update(); draw();
     rafId = requestAnimationFrame(loop);
   }
 
-  /* ---------- Navigation / Screens ---------- */
-  function showOnly(screen){
-    [homeScreen, missionsScreen, leaderboardScreen, gameModesScreen].forEach(s=>{
-      s.style.display='none'; s.classList.remove('active');
-    });
-    if(screen){
-      screen.style.display='flex'; screen.classList.add('active');
-      container.classList.add('controls-hidden');
-      backArrow.style.display = (screen===homeScreen) ? 'none' : 'block';
-      puddlePointsContainer.style.display = 'block'; // menus: show currency
-    }else{
-      // gameplay
-      container.classList.remove('controls-hidden');
-      backArrow.style.display='none';
-      puddlePointsContainer.style.display = 'none'; // hide currency during gameplay
-    }
-    pauseScreen.style.display='none';
-    challengeResultScreen.style.display='none';
+  /* ================= Input binding (hold to move) ================= */
+  function bindHold(element, on, off){
+    const start = e => { e.preventDefault(); on(); };
+    const end   = e => { e.preventDefault(); off(); };
+    element.addEventListener('touchstart', start, {passive:false});
+    element.addEventListener('touchend', end, {passive:false});
+    element.addEventListener('touchcancel', end, {passive:false});
+    element.addEventListener('mousedown', start);
+    element.addEventListener('mouseup', end);
+    element.addEventListener('mouseleave', end);
   }
-  function showGameplayUI(isGame){
-    if(isGame){
-      showOnly(null);
-    }else{
-      showOnly(homeScreen);
-    }
-  }
-  function goHome(){
-    currentMode=null;
-    if(rafId!==null){ cancelAnimationFrame(rafId); rafId=null; }
-    showOnly(homeScreen);
-  }
+  bindHold(leftArrow, ()=> leftHeld = true, ()=> leftHeld = false);
+  bindHold(rightArrow, ()=> rightHeld = true, ()=> rightHeld = false);
 
-  /* ---------- Input (hold to move) ---------- */
-  let leftHeld=false, rightHeld=false;
-  function bindHold(btn, on, off){
-    const start = e=>{ e.preventDefault(); on(); };
-    const end   = e=>{ e.preventDefault(); off(); };
-    btn.addEventListener('touchstart', start, {passive:false});
-    btn.addEventListener('touchend',   end,   {passive:false});
-    btn.addEventListener('touchcancel',end,   {passive:false});
-    btn.addEventListener('mousedown',  start);
-    btn.addEventListener('mouseup',    end);
-    btn.addEventListener('mouseleave', end);
-  }
-  bindHold(leftArrow, ()=>leftHeld=true,  ()=>leftHeld=false);
-  bindHold(rightArrow,()=>rightHeld=true, ()=>rightHeld=false);
-
+  // Pause button behavior
   pauseBtn.addEventListener('click', ()=>{
     if(!gameRunning) return;
-    if(isPaused){ isPaused=false; pauseScreen.style.display='none'; loop(); }
-    else{ isPaused=true; pauseScreen.style.display='flex'; }
+    isPaused = !isPaused;
+    document.getElementById('pauseScreen').style.display = isPaused ? 'flex' : 'none';
+    if(!isPaused) loop();
   });
-  pauseScreen.addEventListener('click', ()=>{
-    if(isPaused){ isPaused=false; pauseScreen.style.display='none'; loop(); }
+  document.getElementById('pauseScreen').addEventListener('click', ()=>{
+    if(isPaused){ isPaused = false; document.getElementById('pauseScreen').style.display='none'; loop(); }
   });
 
+  // Home button (in gameplay) — must fully stop gameplay and show home menu
   homeBtn.addEventListener('click', ()=>{
-    if(currentMode==='challenge' && gameRunning){ endChallenge(false); }
-    else{ goHome(); }
+    // End challenge or stop game and go home
+    if(currentMode === 'challenge' && gameRunning){
+      endChallenge(false);
+    } else {
+      showOnly(homeScreen); // showOnly will call stopAndClearGameplay()
+    }
   });
 
-  // Top buttons
-  playBtn.addEventListener('click', ()=> startEndless());
-  gameModesBtn.addEventListener('click', ()=> showOnly(gameModesScreen));
-  missionsBtn.addEventListener('click', ()=>{ showOnly(missionsScreen); renderMissions(); });
-  leaderboardBtn.addEventListener('click', ()=> showOnly(leaderboardScreen));
+  /* ================= Top menu interactions ================= */
+  function initUIBindings(){
+    playBtn.addEventListener('click', ()=> { startEndless(); });
+    gameModesBtn.addEventListener('click', ()=> { showOnly(gameModesScreen); });
+    missionsBtn.addEventListener('click', ()=> { renderMissions(); showOnly(missionsScreen); });
+    leaderboardBtn.addEventListener('click', ()=> { showOnly(leaderboardScreen); });
 
-  endlessPlayBtn.addEventListener('click', ()=> startEndless());
-  challengePlayBtn.addEventListener('click', ()=> startChallenge());
+    endlessPlayBtn.addEventListener('click', ()=> { startEndless(); });
+    challengePlayBtn.addEventListener('click', ()=> { startChallenge(); });
 
-  backArrow.addEventListener('click', ()=> showOnly(homeScreen));
-  challengeResultBackBtn.addEventListener('click', ()=>{
-    challengeResultScreen.style.display='none'; goHome();
-  });
+    backArrow.addEventListener('click', ()=> { showOnly(homeScreen); });
 
-  /* ---------- Init ---------- */
+    challengeResultBackBtn.addEventListener('click', ()=> { challengeResultScreen.style.display='none'; showOnly(homeScreen); });
+
+    styleBtn.addEventListener('click', ()=> { togglePalette(); });
+    paletteToggle.addEventListener('click', ()=> { togglePalette(); });
+
+    // prevent touchmove scrolling on control areas
+    ['leftArrow','rightArrow','pauseBtn','homeBtn'].forEach(id=>{
+      const el = document.getElementById(id);
+      el && el.addEventListener('touchmove', e => e.preventDefault(), {passive:false});
+    });
+  }
+
+  /* ================= Palette toggle ================= */
+  function togglePalette(){
+    palette = (palette === 'classic' ? 'red' : 'classic');
+    colors = getColorsForPalette(palette);
+    applyPaletteToCSS(palette);
+    localStorage.setItem('paddleQuestPalette', palette);
+  }
+
+  /* ================= Show/hide helpers ================= */
+  function showOnly(screenElem){
+    const screens = [homeScreen, missionsScreen, leaderboardScreen, gameModesScreen];
+    screens.forEach(s => {
+      if(s === screenElem){
+        s.style.display = 'flex'; s.classList.add('active');
+      } else {
+        s.style.display = 'none'; s.classList.remove('active');
+      }
+    });
+
+    if(screenElem){
+      // menus: show HUD menu elements, hide controls & stop gameplay
+      puddlePointsContainer.style.display = 'block';
+      stylePill.style.display = 'block';
+      container.classList.add('controls-hidden'); // hide physical joystick
+      backArrow.style.display = (screenElem === homeScreen) ? 'none' : 'block';
+      stopAndClearGameplay();
+    } else {
+      // gameplay: hide menus
+      puddlePointsContainer.style.display = 'none';
+      stylePill.style.display = 'none';
+      container.classList.remove('controls-hidden');
+      backArrow.style.display = 'none';
+    }
+  }
+
+  /* ================= Init ================= */
   function init(){
     updatePuddlePointsDisplay();
     renderMissions();
+    applyPaletteToCSS(palette);
+    initUIBindings();
     showOnly(homeScreen);
 
-    // Keep controls safely above bottom bars
-    controlButtons.style.bottom =
-      getComputedStyle(document.documentElement).getPropertyValue('--bottom-safe') || '28px';
-
-    // Prevent scroll/drag side effects on touch
-    ['leftArrow','rightArrow','pauseBtn','homeBtn'].forEach(id=>{
-      document.getElementById(id).addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
-    });
+    // fix bottom safe area
+    controlButtons.style.bottom = getComputedStyle(document.documentElement).getPropertyValue('--bottom-safe') || '28px';
   }
+
   init();
+
+  // Expose minimal functions for HTML events
+  window.startEndless = startEndless;
+  window.startChallenge = startChallenge;
+
+  // small helper: drawText8 defined earlier
+  function drawText8(text,x,y,size,align){ drawText8 = drawText8; } // placeholder to avoid lint
 
 })();
 </script>
